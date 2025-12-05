@@ -8,8 +8,9 @@ const useAuthStore = create((set) => ({
     isAuthenticated: true,
     user: {
       id: 1,
-      name: role === 'dottore' ? 'Dr. Mario Rossi' : (role === 'admin' ? 'Amministrazione' : 'Luca Operatore'),
+      name: role === 'dottore' ? 'Mario Rossi' : (role === 'admin' ? 'Amministrazione' : 'Luca Operatore'),
       role: role,
+      studio: role === 'dottore' ? 'Studio Dentistico Rossi' : null,
       avatar: `https://ui-avatars.com/api/?name=${role}&background=2D5BA6&color=fff`
     }
   }),

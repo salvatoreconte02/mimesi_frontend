@@ -12,32 +12,35 @@ export default function StepPatient({ formData, setFormData, onNext }) {
     }));
   };
 
-  // Validazione semplice: verifica che i campi obbligatori siano pieni
-  const isValid = formData.nome && formData.cognome && formData.codicePaziente;
+  // VALIDAZIONE RIGOROSA:
+  // Verifica che codicePaziente esista e non sia solo spazi vuoti.
+  const isCodiceValid = formData.codicePaziente && formData.codicePaziente.trim().length > 0;
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
       
-      {/* Campi Anagrafica */}
+      {/* Campi Anagrafica (Opzionali) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Nome *</label>
+          <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Nome</label>
           <input 
             type="text" 
             name="nome"
             className="w-full p-2 rounded-lg border border-neutral-200 outline-none focus:ring-2 focus:ring-primary/20" 
             value={formData.nome} 
             onChange={handleChange} 
+            placeholder="Opzionale"
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Cognome *</label>
+          <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Cognome</label>
           <input 
             type="text" 
             name="cognome"
             className="w-full p-2 rounded-lg border border-neutral-200 outline-none focus:ring-2 focus:ring-primary/20" 
             value={formData.cognome} 
             onChange={handleChange} 
+            placeholder="Opzionale"
           />
         </div>
       </div>
@@ -45,15 +48,21 @@ export default function StepPatient({ formData, setFormData, onNext }) {
       {/* Dettagli Paziente */}
       <div className="grid grid-cols-3 gap-4">
          <div>
-           <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Codice Paziente *</label>
+           {/* Campo OBBLIGATORIO evidenziato */}
+           <label className="text-xs font-bold text-primary uppercase mb-1">Codice Paziente *</label>
            <input 
              type="text" 
              name="codicePaziente"
-             className="w-full p-2 rounded-lg border border-neutral-200 outline-none focus:ring-2 focus:ring-primary/20" 
+             className={`w-full p-2 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 font-medium ${
+                !isCodiceValid ? 'border-red-300 bg-red-50' : 'border-primary/50 bg-primary/5'
+             }`}
              value={formData.codicePaziente} 
              onChange={handleChange} 
-             placeholder="Es. PZ-001" 
+             placeholder="Es. PZ-001 (Obbligatorio)" 
            />
+           {!isCodiceValid && (
+             <p className="text-[10px] text-red-500 mt-1 font-bold">Inserisci il codice per continuare</p>
+           )}
          </div>
          <div>
            <label className="text-xs font-bold text-neutral-500 uppercase mb-1">Età</label>
@@ -106,7 +115,10 @@ export default function StepPatient({ formData, setFormData, onNext }) {
       
       {/* Footer Navigazione */}
       <div className="flex justify-end pt-4 border-t border-neutral-100 mt-4">
-        <Button onClick={onNext} disabled={!isValid}>Avanti →</Button>
+        {/* WRAPPER DI SICUREZZA: Se non valido, disabilita il click e riduce opacità */}
+        <div className={!isCodiceValid ? 'opacity-50 pointer-events-none cursor-not-allowed' : ''}>
+           <Button onClick={onNext} disabled={!isCodiceValid}>Avanti →</Button>
+        </div>
       </div>
     </motion.div>
   );

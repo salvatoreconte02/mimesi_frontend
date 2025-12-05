@@ -1,32 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, FileText, Upload, Clock, CheckCircle, 
-  AlertCircle, Calendar, Save, Eye, 
-  Link as LinkIcon, Trash2, Info, Check, Send 
+  Plus, FileText, Clock, CheckCircle, 
+  AlertCircle, Calendar, Save, Eye
 } from 'lucide-react';
+
+// IMPORT COMPONENTI UI
 import Card from '../../components/ui/Card'; 
 import Button from '../../components/ui/Button'; 
 
-import StepPatient from '@/components/wizard/StepPatient';
-import StepElements from '@/components/wizard/StepElements';
-import StepFiles from '@/components/wizard/StepFiles';
-import StepSummary from '@/components/wizard/StepSummary';
+// IMPORT STORE
+import useAuthStore from '../../store/authStore';
+
+// IMPORT WIZARD STEPS (Percorsi relativi corretti verso src/components/wizard)
+import StepPatient from '../../components/wizard/StepPatient';
+import StepElements from '../../components/wizard/StepElements';
+import StepFiles from '../../components/wizard/StepFiles';
+import StepSummary from '../../components/wizard/StepSummary';
 
 
-// --- HELPER: COLORI GRUPPI ---
-const GROUP_COLORS = [
-  { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-700' },
-  { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700' },
-  { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' },
-  { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700' },
-  { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-700' },
-];
-
-// --- WIZARD COMPONENTE PRINCIPALE ---
+// --- COMPONENTE WIZARD (NuovaRichiesta) ---
 
 const NuovaRichiesta = ({ onCancel, onSubmit }) => {
   const [step, setStep] = useState(1);
+  const user = useAuthStore((state) => state.user); // Recuperiamo l'utente loggato
   
   // Stato Globale del Wizard
   const [formData, setFormData] = useState({
@@ -41,23 +38,34 @@ const NuovaRichiesta = ({ onCancel, onSubmit }) => {
   const back = () => setStep(s => s - 1);
 
   const handleSubmit = () => {
-    // Logica di salvataggio/invio dati
-    // Creazione oggetto messaggio...
     onSubmit();
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Wizard (Stepper Visivo) */}
-      <div className="flex items-center justify-between mb-6">
+      {/* HEADER WIZARD AGGIORNATO */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
         <div>
            <h2 className="text-2xl font-bold text-primary">Nuova Prescrizione (MPO)</h2>
-           <p className="text-sm text-neutral-500">Step {step} di 4</p>
+           <p className="text-sm text-neutral-500 font-medium">
+             Studio Richiedente: <span className="text-neutral-700 font-bold">{user?.studio || 'Studio Non Identificato'}</span>
+           </p>
         </div>
-        {/* Qui puoi mettere una progress bar visiva più pulita */}
+        
+        {/* Step Indicator visivo a destra */}
+        <div className="flex flex-col items-end gap-1">
+            <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm border border-primary/20">
+                Step {step} di 4
+            </span>
+            <div className="flex gap-1 mt-1">
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'w-6 bg-primary' : 'w-2 bg-neutral-200'}`}></div>
+                ))}
+            </div>
+        </div>
       </div>
 
-      {/* Rendering Condizionale Steps */}
+      {/* STEP CONTENT */}
       <AnimatePresence mode="wait">
         {step === 1 && (
            <StepPatient key="step1" formData={formData} setFormData={setFormData} onNext={next} />
@@ -94,7 +102,7 @@ const NuovaRichiesta = ({ onCancel, onSubmit }) => {
   );
 };
 
-// 2. LISTA PREVENTIVI DA FIRMARE
+// --- SOTTO-COMPONENTE: PREVENTIVI ---
 const PreventiviDaFirmare = () => {
   const [showOtp, setShowOtp] = useState(null);
 
@@ -140,14 +148,14 @@ const PreventiviDaFirmare = () => {
   );
 };
 
-// 3. DASHBOARD PRINCIPALE
+// --- COMPONENTE PRINCIPALE DASHBOARD ---
 export default function DashboardDottore() {
   const [view, setView] = useState('dashboard');
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       
-      {/* HEADER E AZIONI RAPIDE */}
+      {/* HEADER PRINCIPALE */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Il mio Studio</h1>
@@ -176,7 +184,7 @@ export default function DashboardDottore() {
       {/* CONTENUTO DINAMICO */}
       <AnimatePresence mode="wait">
         
-        {/* VISTA: NUOVA RICHIESTA */}
+        {/* VISTA 1: NUOVA RICHIESTA (WIZARD) */}
         {view === 'new-request' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -189,7 +197,7 @@ export default function DashboardDottore() {
           </motion.div>
         )}
 
-        {/* VISTA: PREVENTIVI */}
+        {/* VISTA 2: LISTA PREVENTIVI */}
         {view === 'quotes' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
              <Button variant="ghost" onClick={() => setView('dashboard')} className="mb-4">← Torna alla Dashboard</Button>
@@ -197,7 +205,7 @@ export default function DashboardDottore() {
           </motion.div>
         )}
 
-        {/* VISTA: DASHBOARD (Default) */}
+        {/* VISTA 3: DASHBOARD DI RIEPILOGO (DEFAULT) */}
         {view === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
             
