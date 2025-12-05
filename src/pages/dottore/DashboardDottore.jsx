@@ -5,104 +5,13 @@ import {
   AlertCircle, Calendar, Save, Eye
 } from 'lucide-react';
 
-// IMPORT COMPONENTI UI
 import Card from '../../components/ui/Card'; 
 import Button from '../../components/ui/Button'; 
 
-// IMPORT STORE
-import useAuthStore from '../../store/authStore';
+// IMPORT COMPONENTE WIZARD RIUTILIZZABILE
+import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
-// IMPORT WIZARD STEPS (Percorsi relativi corretti verso src/components/wizard)
-import StepPatient from '../../components/wizard/StepPatient';
-import StepElements from '../../components/wizard/StepElements';
-import StepFiles from '../../components/wizard/StepFiles';
-import StepSummary from '../../components/wizard/StepSummary';
-
-
-// --- COMPONENTE WIZARD (NuovaRichiesta) ---
-
-const NuovaRichiesta = ({ onCancel, onSubmit }) => {
-  const [step, setStep] = useState(1);
-  const user = useAuthStore((state) => state.user); // Recuperiamo l'utente loggato
-  
-  // Stato Globale del Wizard
-  const [formData, setFormData] = useState({
-    nome: '', cognome: '', codicePaziente: '', eta: '', sesso: 'M',
-    allergie: false, bruxismo: false, disfunzioni: false, dispositivi: false, handicap: false
-  });
-  const [configuredElements, setConfiguredElements] = useState([]); 
-  const [dates, setDates] = useState({ delivery: '', tryIn1: '', tryIn2: '', tryIn3: '' });
-
-  // Funzioni di navigazione
-  const next = () => setStep(s => s + 1);
-  const back = () => setStep(s => s - 1);
-
-  const handleSubmit = () => {
-    onSubmit();
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* HEADER WIZARD AGGIORNATO */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
-        <div>
-           <h2 className="text-2xl font-bold text-primary">Nuova Prescrizione (MPO)</h2>
-           <p className="text-sm text-neutral-500 font-medium">
-             Studio Richiedente: <span className="text-neutral-700 font-bold">{user?.studio || 'Studio Non Identificato'}</span>
-           </p>
-        </div>
-        
-        {/* Step Indicator visivo a destra */}
-        <div className="flex flex-col items-end gap-1">
-            <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm border border-primary/20">
-                Step {step} di 4
-            </span>
-            <div className="flex gap-1 mt-1">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'w-6 bg-primary' : 'w-2 bg-neutral-200'}`}></div>
-                ))}
-            </div>
-        </div>
-      </div>
-
-      {/* STEP CONTENT */}
-      <AnimatePresence mode="wait">
-        {step === 1 && (
-           <StepPatient key="step1" formData={formData} setFormData={setFormData} onNext={next} />
-        )}
-        
-        {step === 2 && (
-           <StepElements 
-             key="step2"
-             configuredElements={configuredElements} 
-             setConfiguredElements={setConfiguredElements}
-             dates={dates}
-             setDates={setDates}
-             onBack={back}
-             onNext={next}
-           />
-        )}
-
-        {step === 3 && (
-           <StepFiles key="step3" onBack={back} onNext={next} />
-        )}
-
-        {step === 4 && (
-           <StepSummary 
-             key="step4"
-             formData={formData}
-             configuredElements={configuredElements}
-             dates={dates}
-             onBack={back}
-             onSubmit={handleSubmit}
-           />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// --- SOTTO-COMPONENTE: PREVENTIVI ---
+// --- SOTTO-COMPONENTE: PREVENTIVI (Rimane qui per ora) ---
 const PreventiviDaFirmare = () => {
   const [showOtp, setShowOtp] = useState(null);
 
@@ -184,16 +93,21 @@ export default function DashboardDottore() {
       {/* CONTENUTO DINAMICO */}
       <AnimatePresence mode="wait">
         
-        {/* VISTA 1: NUOVA RICHIESTA (WIZARD) */}
+        {/* VISTA 1: NUOVA RICHIESTA (USO DEL NUOVO COMPONENTE) */}
         {view === 'new-request' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             className="bg-white rounded-3xl p-8 shadow-xl border border-neutral-100"
           >
-            <NuovaRichiesta onCancel={() => setView('dashboard')} onSubmit={() => {
-               alert("Richiesta inviata all'Amministrazione per validazione!");
-               setView('dashboard');
-            }} />
+            <NewRequestWizard 
+                onCancel={() => setView('dashboard')} 
+                onSubmit={(data) => {
+                    // Qui gestiresti i dati ricevuti
+                    console.log("Dati ricevuti dal Wizard:", data);
+                    alert("Richiesta creata con successo!");
+                    setView('dashboard');
+                }} 
+            />
           </motion.div>
         )}
 
@@ -208,7 +122,6 @@ export default function DashboardDottore() {
         {/* VISTA 3: DASHBOARD DI RIEPILOGO (DEFAULT) */}
         {view === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-            
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="flex items-center gap-4 bg-primary/5 border-primary/20">
