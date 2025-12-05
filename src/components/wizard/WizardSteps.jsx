@@ -64,7 +64,38 @@ export const StepPaziente = ({ data, onChange, readOnly = false }) => {
 };
 
 
-// --- STEP 2: ELEMENTI (Semplificato: Solo pulsante "Aggiungi") ---
+// --- HELPER: LOGICA ADIACENZA DENTI (ISO 3950) ---
+const checkAdjacency = (teeth) => {
+  // 1. Un dente singolo è sempre valido
+  if (teeth.length <= 1) return true;
+
+  // 2. Ordine anatomico dei denti (da destra a sinistra del paziente)
+  const UPPER_ORDER = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28'];
+  const LOWER_ORDER = ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38'];
+
+  // 3. Verifica Arcata (Non si possono unire denti sopra con denti sotto)
+  // I denti 1x e 2x sono superiori, 3x e 4x sono inferiori
+  const isUpper = teeth.every(t => ['1','2'].includes(t.charAt(0)));
+  const isLower = teeth.every(t => ['3','4'].includes(t.charAt(0)));
+
+  if (!isUpper && !isLower) return false; // Misti sopra/sotto
+
+  // 4. Verifica Contiguità
+  const refArch = isUpper ? UPPER_ORDER : LOWER_ORDER;
+  
+  // Trova gli indici nell'array ordinato
+  const indices = teeth.map(t => refArch.indexOf(t)).sort((a, b) => a - b);
+
+  // Controlla se gli indici sono consecutivi (es. 7, 8, 9)
+  for (let i = 0; i < indices.length - 1; i++) {
+    if (indices[i+1] !== indices[i] + 1) {
+      return false; // C'è un buco (es. 11 e 13, manca il 12)
+    }
+  }
+
+  return true;
+};
+
 export const StepElementi = ({ data, onChange, readOnly = false }) => {
   // data: { groups: [], currentSelection: [], config: {}, dates: {} }
   
@@ -85,6 +116,7 @@ export const StepElementi = ({ data, onChange, readOnly = false }) => {
        if (confirm("Questo elemento è già in un gruppo. Vuoi rimuoverlo?")) {
           const newGroups = [...data.groups];
           newGroups[existingGroupIndex].teeth = newGroups[existingGroupIndex].teeth.filter(t => t !== id);
+          // Se il gruppo rimane vuoto, lo eliminiamo
           if (newGroups[existingGroupIndex].teeth.length === 0) {
              newGroups.splice(existingGroupIndex, 1);
           }
@@ -98,15 +130,23 @@ export const StepElementi = ({ data, onChange, readOnly = false }) => {
     onChange({ ...data, currentSelection: updated });
   };
 
-  // Logica unica: se > 1 dente è un Ponte, altrimenti Singolo
+  // AGGIUNGI GRUPPO (Con validazione adiacenza)
   const addGroup = () => {
-     if (!data.currentSelection || data.currentSelection.length === 0) return;
+     const selection = data.currentSelection || [];
      
-     const isBridge = data.currentSelection.length > 1;
+     if (selection.length === 0) return;
+
+     // 1. VALIDAZIONE ADIACENZA
+     if (!checkAdjacency(selection)) {
+       alert("ERRORE: I denti selezionati non sono adiacenti.\n\nPer creare un gruppo, devi selezionare denti vicini (es. 11-12-13).");
+       return;
+     }
+     
+     const isBridge = selection.length > 1;
      
      const newGroup = {
         id: Date.now(),
-        teeth: [...data.currentSelection].sort(),
+        teeth: [...selection].sort(),
         type: isBridge ? 'Ponte' : 'Elemento Singolo',
         isBridge: isBridge
      };
@@ -114,7 +154,7 @@ export const StepElementi = ({ data, onChange, readOnly = false }) => {
      onChange({ 
         ...data, 
         groups: [...(data.groups || []), newGroup],
-        currentSelection: [] // Resetta selezione
+        currentSelection: [] // Resetta selezione dopo l'aggiunta
      });
   };
 
@@ -168,7 +208,7 @@ export const StepElementi = ({ data, onChange, readOnly = false }) => {
               </span>
               <div className="flex gap-2 w-full sm:w-auto">
                  <Button size="sm" variant="ghost" className="flex-1 sm:flex-none" onClick={() => onChange({...data, currentSelection: []})}>Annulla</Button>
-                 {/* UNICO PULSANTE AGGIUNGI */}
+                 {/* UNICO PULSANTE AGGIUNGI (Con check adiacenza automatico) */}
                  <Button size="sm" className="flex-1 sm:flex-none" onClick={addGroup}>
                     <Plus size={14} className="mr-1"/> Aggiungi
                  </Button>
@@ -231,6 +271,8 @@ export const StepElementi = ({ data, onChange, readOnly = false }) => {
     </div>
   );
 };
+
+
 // --- STEP 3: ALLEGATI (Con Input Reale e Preview) ---
 export const StepAllegati = ({ data, onChange, readOnly = false }) => {
   const [previewFile, setPreviewFile] = useState(null);
