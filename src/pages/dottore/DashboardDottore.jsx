@@ -1,123 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileText, Plus, Clock, AlertCircle, CheckCircle, 
-  Calendar, Save, Eye, Send 
+  Plus, FileText, Clock, CheckCircle, 
+  AlertCircle, Calendar, Save, Eye
 } from 'lucide-react';
-import useAuthStore from '../../store/authStore';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-// Importiamo i nuovi step modulari
-import { StepPaziente, StepElementi, StepAllegati, RiepilogoScheda } from '../../components/wizard/WizardSteps';
 
-// --- COMPONENTE WIZARD NUOVA RICHIESTA ---
-function NuovaRichiesta({ onCancel, onSubmit }) {
-  const { user } = useAuthStore();
-  const [step, setStep] = useState(1);
-  
-  // Stato Globale del Wizard diviso per sezioni
-  const [wizData, setWizData] = useState({
-    paziente: { codicePaziente: '', sesso: 'M' },
-    // AGGIORNATO QUI: Aggiungi 'groups: []' e 'currentSelection: []'
-    elementi: { groups: [], currentSelection: [], config: { material: 'zirconio', color: 'A2' }, dates: {} },
-    // AGGIORNATO QUI: Aggiungi 'files: []'
-    allegati: { impression: {}, files: [] }
-  });
+import Card from '../../components/ui/Card'; 
+import Button from '../../components/ui/Button'; 
 
-  // Helper per aggiornare le sezioni
-  const updateSection = (section, newData) => {
-    setWizData(prev => ({ ...prev, [section]: newData }));
-  };
+// IMPORT COMPONENTE WIZARD RIUTILIZZABILE
+import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
-  const submitFullRequest = () => {
-    const newMsg = {
-      id: Date.now(),
-      from: `Dott. ${user?.name || 'Utente'}`,
-      subject: `Nuova Lavorazione - Pz. ${wizData.paziente.codicePaziente}`,
-      preview: `${wizData.elementi.selectedTeeth.length} Elementi in ${wizData.elementi.config.material}. Consegna: ${wizData.elementi.dates.delivery || 'ND'}`,
-      date: new Date().toISOString(),
-      read: false,
-      type: 'request',
-      // Salviamo l'intero oggetto dati per la validazione Admin
-      fullData: wizData,
-      doctorInfo: { name: user?.name, studio: user?.studio || 'Studio Principale' }
-    };
-    
-    const existingInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
-    localStorage.setItem('mimesi_admin_inbox', JSON.stringify([newMsg, ...existingInbox]));
-    
-    onSubmit();
-  };
-
-  const canProceedStep1 = wizData.paziente.codicePaziente?.trim().length > 0;
-  const canProceedStep2 = wizData.elementi.groups && wizData.elementi.groups.length > 0;
-
-  return (
-    <div className="space-y-6">
-      {/* Header Wizard */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b">
-        <div>
-           <h2 className="text-2xl font-bold text-primary">Nuova Prescrizione (MPO)</h2>
-           <p className="text-sm text-neutral-500">Studio: {user?.studio || 'Mio Studio'}</p>
-        </div>
-        <div className="flex gap-2">
-           {[1, 2, 3, 4].map(s => (
-             <div key={s} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors 
-               ${step === s ? 'bg-primary text-white' : step > s ? 'bg-success text-white' : 'bg-neutral-100 text-neutral-400'}`}>
-               {step > s ? <CheckCircle size={16}/> : s}
-             </div>
-           ))}
-        </div>
-      </div>
-
-      {/* Steps Content */}
-      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} key={step} transition={{ duration: 0.2 }}>
-        
-        {step === 1 && (
-          <StepPaziente data={wizData.paziente} onChange={(d) => updateSection('paziente', d)} />
-        )}
-
-        {step === 2 && (
-          <StepElementi data={wizData.elementi} onChange={(d) => updateSection('elementi', d)} />
-        )}
-
-        {step === 3 && (
-          <StepAllegati data={wizData.allegati} onChange={(d) => updateSection('allegati', d)} />
-        )}
-
-        {step === 4 && (
-          <div className="space-y-4">
-             <RiepilogoScheda fullData={wizData} doctorInfo={{ name: user?.name, studio: user?.studio }} />
-             <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 text-sm text-yellow-800">
-                Confermando, la richiesta verrà inviata per la validazione tecnica.
-             </div>
-          </div>
-        )}
-
-      </motion.div>
-
-      {/* Footer Navigation */}
-      <div className="flex justify-between mt-8 pt-4 border-t border-neutral-100">
-        <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onCancel()}>
-           {step === 1 ? 'Annulla' : '← Indietro'}
-        </Button>
-        
-        {step < 4 ? (
-          <Button onClick={() => setStep(step + 1)} 
-             disabled={(step === 1 && !canProceedStep1) || (step === 2 && !canProceedStep2)}>
-             Avanti →
-          </Button>
-        ) : (
-          <Button variant="gradient" onClick={submitFullRequest} className="pl-6 pr-6">
-             <Send size={18} className="mr-2" /> Conferma e Invia
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// --- COMPONENTE PREVENTIVI DA FIRMARE ---
+// --- SOTTO-COMPONENTE: PREVENTIVI (Rimane qui per ora) ---
 const PreventiviDaFirmare = () => {
   const [showOtp, setShowOtp] = useState(null);
 
@@ -163,14 +57,14 @@ const PreventiviDaFirmare = () => {
   );
 };
 
-// --- DASHBOARD PRINCIPALE ---
+// --- COMPONENTE PRINCIPALE DASHBOARD ---
 export default function DashboardDottore() {
   const [view, setView] = useState('dashboard');
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       
-      {/* HEADER E AZIONI RAPIDE */}
+      {/* HEADER PRINCIPALE */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Studio Odontoiatrico Albanese</h1>
@@ -199,21 +93,26 @@ export default function DashboardDottore() {
       {/* CONTENUTO DINAMICO */}
       <AnimatePresence mode="wait">
         
-        {/* VISTA: NUOVA RICHIESTA */}
+        {/* VISTA 1: NUOVA RICHIESTA (USO DEL NUOVO COMPONENTE) */}
         {view === 'new-request' && (
           <motion.div 
             key="new-req"
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             className="bg-white rounded-3xl p-8 shadow-xl border border-neutral-100"
           >
-            <NuovaRichiesta onCancel={() => setView('dashboard')} onSubmit={() => {
-               alert("Richiesta inviata all'Amministrazione per validazione!");
-               setView('dashboard');
-            }} />
+            <NewRequestWizard 
+                onCancel={() => setView('dashboard')} 
+                onSubmit={(data) => {
+                    // Qui gestiresti i dati ricevuti
+                    console.log("Dati ricevuti dal Wizard:", data);
+                    alert("Richiesta creata con successo!");
+                    setView('dashboard');
+                }} 
+            />
           </motion.div>
         )}
 
-        {/* VISTA: PREVENTIVI */}
+        {/* VISTA 2: LISTA PREVENTIVI */}
         {view === 'quotes' && (
           <motion.div key="quotes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
              <Button variant="ghost" onClick={() => setView('dashboard')} className="mb-4">← Torna alla Dashboard</Button>
@@ -221,10 +120,9 @@ export default function DashboardDottore() {
           </motion.div>
         )}
 
-        {/* VISTA: DASHBOARD (Default) */}
+        {/* VISTA 3: DASHBOARD DI RIEPILOGO (DEFAULT) */}
         {view === 'dashboard' && (
-          <motion.div key="dash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-            
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="flex items-center gap-4 bg-primary/5 border-primary/20">
