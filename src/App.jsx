@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import useAuthStore from './store/authStore';
 import Sidebar from './components/layout/Sidebar';
-import Dashboard from './pages/dottore/DashboardDottore';
+import DashboardDottore from './pages/dottore/DashboardDottore';
+import DashboardAdmin from './pages/admin/DashboardAdmin'; // <--- Importa il nuovo file
+import DashboardGeneric from './pages/Dashboard'; // La tua dashboard generica attuale (rinominala o importala come preferisci)
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 
@@ -41,24 +43,41 @@ function Login() {
 }
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore(); // Recuperiamo anche 'user' per controllare il ruolo
   const [page, setPage] = useState('dashboard');
 
   if (!isAuthenticated) return <Login />;
 
-  return (
-    <div className="bg-neutral-50 min-h-screen pl-64">
-      <Sidebar setPage={setPage} />
-      <main className="min-h-screen">
-        {page === 'dashboard' && <Dashboard />}
-        {page !== 'dashboard' && (
-          <div className="p-8 flex items-center justify-center h-screen opacity-50">
+  // LOGICA DI ROUTING BASATA SUL RUOLO
+  const renderDashboard = () => {
+    if (page !== 'dashboard') {
+        // Se non siamo sulla home, mostra il placeholder "In sviluppo"
+        return (
+            <div className="p-8 flex items-center justify-center h-screen opacity-50">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-neutral-300">Modulo in Sviluppo</h2>
               <p className="text-neutral-400">Questa sezione sarà disponibile nella prossima release.</p>
             </div>
           </div>
-        )}
+        )
+    }
+
+    // Se siamo sulla Dashboard, quale mostriamo?
+    switch(user?.role) { // Assumiamo che il tuo authStore salvi il ruolo in user.role
+        case 'admin':
+            return <DashboardAdmin />;
+        case 'dottore':
+            return <DashboardDottore />;
+        default:
+            return <DashboardGeneric />;
+    }
+  };
+
+  return (
+    <div className="bg-neutral-50 min-h-screen pl-64">
+      <Sidebar setPage={setPage} />
+      <main className="min-h-screen">
+        {renderDashboard()}
       </main>
     </div>
   );
