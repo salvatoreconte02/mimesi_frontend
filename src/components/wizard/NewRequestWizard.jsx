@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
 
@@ -12,21 +12,21 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   const [step, setStep] = useState(1);
   const user = useAuthStore((state) => state.user);
   
-  // Determina se l'utente è un Admin o un Dottore
   const isAdmin = user?.role === 'admin';
   const isDoctor = user?.role === 'dottore';
 
-  // Stato Globale del Wizard
+  // Stato Dati Anagrafici
   const [formData, setFormData] = useState({
-    // Dati Studio/Dottore (Presi dallo STORE aggiornato)
-    // Se è dottore, uniamo nome e cognome per il campo "Nome Dottore", altrimenti vuoto
     nomeDottore: isDoctor ? `${user.nome} ${user.cognome}` : '',
-    // Se è dottore, prendiamo lo studio dallo store
     nomeStudio: isDoctor ? (user.studio || '') : '', 
-    
-    // Dati Paziente
     nome: '', cognome: '', codicePaziente: '', eta: '', sesso: 'M',
     allergie: false, bruxismo: false, disfunzioni: false, dispositivi: false, handicap: false
+  });
+
+  // NUOVO: Stato Dati Tecnici (Materiale/Colore Unici)
+  const [technicalInfo, setTechnicalInfo] = useState({
+    material: 'zirconio',
+    color: 'A2'
   });
 
   const [configuredElements, setConfiguredElements] = useState([]); 
@@ -35,15 +35,15 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   const next = () => setStep(s => s + 1);
   const back = () => setStep(s => s - 1);
 
-  // Payload finale per il submit
   const handleFinalSubmit = () => {
     const fullRequestData = {
       ...formData,
+      technicalInfo: technicalInfo, // Includiamo i dati tecnici globali
       elements: configuredElements,
       dates: dates,
       createdBy: user.id,
       createdRole: user.role,
-      studioReference: user.studio, // Salviamo anche il riferimento allo studio originale
+      studioReference: user.studio,
       status: 'new'
     };
     
@@ -61,13 +61,11 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              {isAdmin ? (
                <span className="text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Modalità Admin</span>
              ) : (
-               // Usiamo formData.nomeStudio che ora è popolato correttamente dallo store
                <span>Studio Richiedente: <span className="text-neutral-700 font-bold">{formData.nomeStudio || 'Non specificato'}</span></span>
              )}
            </p>
         </div>
         
-        {/* Step Indicator */}
         <div className="flex flex-col items-end gap-1">
             <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm border border-primary/20">
                 Step {step} di 4
@@ -97,6 +95,8 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              key="step2"
              configuredElements={configuredElements} 
              setConfiguredElements={setConfiguredElements}
+             technicalInfo={technicalInfo} // Passiamo lo stato
+             setTechnicalInfo={setTechnicalInfo} // Passiamo il setter
              dates={dates}
              setDates={setDates}
              onBack={back}

@@ -11,127 +11,76 @@ export const GROUP_COLORS = [
 ];
 
 const TOOTH_SHAPES = {
-  // Molare: forma rettangolare arrotondata con 4-5 cuspidi
+  // Molare
   molar: {
-    outline: `M -10 -12 
-              Q -13 -12, -13 -8 
-              L -13 8 
-              Q -13 12, -10 12 
-              L 10 12 
-              Q 13 12, 13 8 
-              L 13 -8 
-              Q 13 -12, 10 -12 Z`,
-    // Solco centrale a forma di H/croce
-    details: `M -7 0 L 7 0 M 0 -7 L 0 7 
-              M -6 -6 Q -3 -3, 0 -6 Q 3 -3, 6 -6
-              M -6 6 Q -3 3, 0 6 Q 3 3, 6 6`,
-    // Cuspidi (4 angoli)
-    cusps: [
-      { cx: -6, cy: -6, r: 3 },
-      { cx: 6, cy: -6, r: 3 },
-      { cx: -6, cy: 6, r: 3 },
-      { cx: 6, cy: 6, r: 3 },
-    ]
+    outline: `M -10 -12 Q -13 -12, -13 -8 L -13 8 Q -13 12, -10 12 L 10 12 Q 13 12, 13 8 L 13 -8 Q 13 -12, 10 -12 Z`,
+    details: `M -7 0 L 7 0 M 0 -7 L 0 7 M -6 -6 Q -3 -3, 0 -6 Q 3 -3, 6 -6 M -6 6 Q -3 3, 0 6 Q 3 3, 6 6`,
+    cusps: [{ cx: -6, cy: -6, r: 3 }, { cx: 6, cy: -6, r: 3 }, { cx: -6, cy: 6, r: 3 }, { cx: 6, cy: 6, r: 3 }]
   },
-  
-  // Premolare: forma ovale con 2 cuspidi
+  // Premolare
   premolar: {
-    outline: `M -7 -10 
-              Q -10 -10, -10 -6 
-              L -10 6 
-              Q -10 10, -7 10 
-              L 7 10 
-              Q 10 10, 10 6 
-              L 10 -6 
-              Q 10 -10, 7 -10 Z`,
-    // Solco centrale
+    outline: `M -7 -10 Q -10 -10, -10 -6 L -10 6 Q -10 10, -7 10 L 7 10 Q 10 10, 10 6 L 10 -6 Q 10 -10, 7 -10 Z`,
     details: `M 0 -6 L 0 6`,
-    cusps: [
-      { cx: -4, cy: 0, r: 3.5 },
-      { cx: 4, cy: 0, r: 3.5 },
-    ]
+    cusps: [{ cx: -4, cy: 0, r: 3.5 }, { cx: 4, cy: 0, r: 3.5 }]
   },
-  
-  // Canino: forma a diamante/rombo con punta
+  // Canino
   canine: {
-    outline: `M 0 -11 
-              Q 6 -8, 9 0 
-              Q 6 8, 0 11 
-              Q -6 8, -9 0 
-              Q -6 -8, 0 -11 Z`,
-    // Cresta centrale
+    outline: `M 0 -11 Q 6 -8, 9 0 Q 6 8, 0 11 Q -6 8, -9 0 Q -6 -8, 0 -11 Z`,
     details: `M 0 -7 L 0 7`,
-    cusps: [
-      { cx: 0, cy: 0, r: 4 },
-    ]
+    cusps: [{ cx: 0, cy: 0, r: 4 }]
   },
-  
-  // Incisivo centrale: forma a pala/rettangolo largo
+  // Incisivo centrale
   incisor_central: {
-    outline: `M -8 -6 
-              Q -9 -6, -9 -4 
-              L -9 6 
-              Q -9 8, -7 8 
-              L 7 8 
-              Q 9 8, 9 6 
-              L 9 -4 
-              Q 9 -6, 8 -6 Z`,
-    // Margine incisale
+    outline: `M -8 -6 Q -9 -6, -9 -4 L -9 6 Q -9 8, -7 8 L 7 8 Q 9 8, 9 6 L 9 -4 Q 9 -6, 8 -6 Z`,
     details: `M -6 -3 L 6 -3`,
     cusps: []
   },
-  
-  // Incisivo laterale: simile al centrale ma più piccolo e stretto
+  // Incisivo laterale
   incisor_lateral: {
-    outline: `M -6 -5 
-              Q -7 -5, -7 -3 
-              L -7 5 
-              Q -7 7, -5 7 
-              L 5 7 
-              Q 7 7, 7 5 
-              L 7 -3 
-              Q 7 -5, 6 -5 Z`,
+    outline: `M -6 -5 Q -7 -5, -7 -3 L -7 5 Q -7 7, -5 7 L 5 7 Q 7 7, 7 5 L 7 -3 Q 7 -5, 6 -5 Z`,
     details: `M -4 -2 L 4 -2`,
     cusps: []
   }
 };
 
+// Dati posizionamento arcate con Offset Etichette (lx, ly) AUMENTATO
+// Gli offset sono stati incrementati di circa 10-12px per distanziare le etichette
 const DENTAL_ARCH_DATA = {
   upper: [
-    { id: '18', x: 22, y: 155, rot: -15, lx: -28, ly: 5 },
-    { id: '17', x: 30, y: 120, rot: -20, lx: -28, ly: 0 },
-    { id: '16', x: 42, y: 88, rot: -25, lx: -26, ly: -5 },
-    { id: '15', x: 58, y: 60, rot: -38, lx: -22, ly: -10 },
-    { id: '14', x: 78, y: 40, rot: -50, lx: -18, ly: -14 },
-    { id: '13', x: 102, y: 24, rot: -65, lx: -12, ly: -18 },
-    { id: '12', x: 128, y: 14, rot: -78, lx: -6, ly: -22 },
-    { id: '11', x: 152, y: 10, rot: -88, lx: 0, ly: -24 },
-    { id: '21', x: 178, y: 10, rot: 88, lx: 0, ly: -24 },
-    { id: '22', x: 202, y: 14, rot: 78, lx: 6, ly: -22 },
-    { id: '23', x: 228, y: 24, rot: 65, lx: 12, ly: -18 },
-    { id: '24', x: 252, y: 40, rot: 50, lx: 18, ly: -14 },
-    { id: '25', x: 272, y: 60, rot: 38, lx: 22, ly: -10 },
-    { id: '26', x: 288, y: 88, rot: 25, lx: 26, ly: -5 },
-    { id: '27', x: 300, y: 120, rot: 20, lx: 28, ly: 0 },
-    { id: '28', x: 308, y: 155, rot: 15, lx: 28, ly: 5 },
+    { id: '18', x: 22, y: 155, rot: -15, lx: -36, ly: 5 },
+    { id: '17', x: 30, y: 120, rot: -20, lx: -36, ly: 0 },
+    { id: '16', x: 42, y: 88, rot: -25, lx: -34, ly: -5 },
+    { id: '15', x: 58, y: 60, rot: -38, lx: -30, ly: -15 },
+    { id: '14', x: 78, y: 40, rot: -50, lx: -26, ly: -20 },
+    { id: '13', x: 102, y: 24, rot: -65, lx: -18, ly: -28 },
+    { id: '12', x: 128, y: 14, rot: -78, lx: -10, ly: -34 },
+    { id: '11', x: 152, y: 10, rot: -88, lx: 0, ly: -36 },
+    { id: '21', x: 178, y: 10, rot: 88, lx: 0, ly: -36 },
+    { id: '22', x: 202, y: 14, rot: 78, lx: 10, ly: -34 },
+    { id: '23', x: 228, y: 24, rot: 65, lx: 18, ly: -28 },
+    { id: '24', x: 252, y: 40, rot: 50, lx: 26, ly: -20 },
+    { id: '25', x: 272, y: 60, rot: 38, lx: 30, ly: -15 },
+    { id: '26', x: 288, y: 88, rot: 25, lx: 34, ly: -5 },
+    { id: '27', x: 300, y: 120, rot: 20, lx: 36, ly: 0 },
+    { id: '28', x: 308, y: 155, rot: 15, lx: 36, ly: 5 },
   ],
   lower: [
-    { id: '48', x: 22, y: 25, rot: 15, lx: -28, ly: -5 },
-    { id: '47', x: 30, y: 60, rot: 20, lx: -28, ly: 0 },
-    { id: '46', x: 42, y: 92, rot: 25, lx: -26, ly: 5 },
-    { id: '45', x: 58, y: 120, rot: 38, lx: -22, ly: 10 },
-    { id: '44', x: 78, y: 140, rot: 50, lx: -18, ly: 14 },
-    { id: '43', x: 102, y: 156, rot: 65, lx: -12, ly: 18 },
-    { id: '42', x: 128, y: 166, rot: 78, lx: -6, ly: 22 },
-    { id: '41', x: 152, y: 170, rot: 88, lx: 0, ly: 24 },
-    { id: '31', x: 178, y: 170, rot: -88, lx: 0, ly: 24 },
-    { id: '32', x: 202, y: 166, rot: -78, lx: 6, ly: 22 },
-    { id: '33', x: 228, y: 156, rot: -65, lx: 12, ly: 18 },
-    { id: '34', x: 252, y: 140, rot: -50, lx: 18, ly: 14 },
-    { id: '35', x: 272, y: 120, rot: -38, lx: 22, ly: 10 },
-    { id: '36', x: 288, y: 92, rot: -25, lx: 26, ly: 5 },
-    { id: '37', x: 300, y: 60, rot: -20, lx: 28, ly: 0 },
-    { id: '38', x: 308, y: 25, rot: -15, lx: 28, ly: -5 },
+    { id: '48', x: 22, y: 25, rot: 15, lx: -36, ly: -5 },
+    { id: '47', x: 30, y: 60, rot: 20, lx: -36, ly: 0 },
+    { id: '46', x: 42, y: 92, rot: 25, lx: -34, ly: 5 },
+    { id: '45', x: 58, y: 120, rot: 38, lx: -30, ly: 15 },
+    { id: '44', x: 78, y: 140, rot: 50, lx: -26, ly: 20 },
+    { id: '43', x: 102, y: 156, rot: 65, lx: -18, ly: 28 },
+    { id: '42', x: 128, y: 166, rot: 78, lx: -10, ly: 34 },
+    { id: '41', x: 152, y: 170, rot: 88, lx: 0, ly: 36 },
+    { id: '31', x: 178, y: 170, rot: -88, lx: 0, ly: 36 },
+    { id: '32', x: 202, y: 166, rot: -78, lx: 10, ly: 34 },
+    { id: '33', x: 228, y: 156, rot: -65, lx: 18, ly: 28 },
+    { id: '34', x: 252, y: 140, rot: -50, lx: 26, ly: 20 },
+    { id: '35', x: 272, y: 120, rot: -38, lx: 30, ly: 15 },
+    { id: '36', x: 288, y: 92, rot: -25, lx: 34, ly: 5 },
+    { id: '37', x: 300, y: 60, rot: -20, lx: 36, ly: 0 },
+    { id: '38', x: 308, y: 25, rot: -15, lx: 36, ly: -5 },
   ]
 };
 
@@ -143,20 +92,14 @@ export const getToothType = (toothId) => {
   if (num === 2) return 'incisor_lateral';
   if (num === 3) return 'canine';
   if (num === 4 || num === 5) return 'premolar';
-  return 'molar'; // 6, 7, 8
+  return 'molar'; 
 };
 
-/**
- * Logica di adiacenza denti (ISO 3950)
- * Ritorna true se i denti passati nell'array sono tutti adiacenti
- */
 export const checkAdjacency = (teeth) => {
   if (teeth.length < 2) return true;
   
   const UPPER = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28'];
   const LOWER = ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38'];
-  
-  const sorted = [...teeth].sort();
   
   const isUpper = teeth.every(t => UPPER.includes(t));
   const isLower = teeth.every(t => LOWER.includes(t));
@@ -164,11 +107,8 @@ export const checkAdjacency = (teeth) => {
   if (!isUpper && !isLower) return false;
   
   const refArray = isUpper ? UPPER : LOWER;
-  
-  // Trova gli indici nell'array di riferimento
   const indices = teeth.map(t => refArray.indexOf(t)).sort((a,b) => a-b);
   
-  // Controlla sequenzialità
   for (let i = 0; i < indices.length - 1; i++) {
     if (indices[i+1] !== indices[i] + 1) return false;
   }
@@ -187,16 +127,16 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
   let strokeColor = '#94A3B8';
   let detailColor = '#CBD5E1';
   let cuspFill = '#F1F5F9';
-  let numBg = '#1E293B';
+  let numBg = '#1E293B'; // Default background per il numero
   let shadowOpacity = 0.08;
 
   if (isSelected) {
-    fillColor = '#3B82F6';
-    strokeColor = '#1D4ED8';
+    fillColor = '#3B82F6'; // Blue-500
+    strokeColor = '#1D4ED8'; // Blue-700
     detailColor = '#60A5FA';
     cuspFill = '#2563EB';
-    numBg = '#1D4ED8';
     shadowOpacity = 0.25;
+    numBg = '#1D4ED8'; // Background blu per il numero
   } else if (configuredGroup) {
     const colors = [
       { fill: '#DBEAFE', stroke: '#3B82F6', detail: '#93C5FD', cusp: '#BFDBFE' },
@@ -205,25 +145,25 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
       { fill: '#FFEDD5', stroke: '#F97316', detail: '#FDBA74', cusp: '#FED7AA' },
       { fill: '#FCE7F3', stroke: '#EC4899', detail: '#F9A8D4', cusp: '#FBCFE8' },
     ];
-    // Usa l'indice del gruppo per assegnare un colore coerente
     const idx = configuredGroup.groupIndex % colors.length;
     fillColor = colors[idx].fill;
     strokeColor = colors[idx].stroke;
     detailColor = colors[idx].detail;
     cuspFill = colors[idx].cusp;
-    numBg = colors[idx].stroke;
+    numBg = colors[idx].stroke; // Background colorato per il numero
   }
 
-  // Scala per dimensioni uniformi
   const scale = toothType === 'molar' ? 1.15 : toothType === 'premolar' ? 1.05 : 1.0;
 
   return (
     <g 
       onClick={() => onToggle(data.id)} 
-      className="cursor-pointer transition-all duration-200"
+      className="cursor-pointer transition-all duration-200 hover:opacity-80"
       style={{ filter: `drop-shadow(0 2px 3px rgba(0,0,0,${shadowOpacity}))` }}
     >
-      {/* Numero del dente */}
+      <title>Dente {data.id}</title>
+      
+      {/* Etichetta Numero Dente (Ripristinata con cerchio) */}
       <g>
         <circle 
           cx={data.x + data.lx} 
@@ -244,10 +184,9 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
           {data.id}
         </text>
       </g>
-      
+
       {/* Dente anatomico - Solo corona */}
       <g transform={`translate(${data.x}, ${data.y}) rotate(${data.rot}) scale(${scale})`}>
-        {/* Contorno esterno della corona */}
         <path 
           d={shape.outline} 
           fill={fillColor} 
@@ -256,7 +195,6 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
           className="transition-colors duration-200"
         />
         
-        {/* Cuspidi (cerchi per molari/premolari) */}
         {shape.cusps && shape.cusps.map((cusp, i) => (
           <circle
             key={i}
@@ -269,7 +207,6 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
           />
         ))}
         
-        {/* Dettagli/solchi */}
         <path 
           d={shape.details} 
           fill="none" 
@@ -285,37 +222,33 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
 // --- COMPONENTE PRINCIPALE ---
 
 const VisualOdontogram = ({ selected = [], onToggle, configured = [] }) => (
-  <div className="flex flex-col xl:flex-row gap-6 justify-center items-center py-4 select-none">
+  <div className="flex flex-col gap-6 justify-center items-center py-4 select-none w-full">
     {['upper', 'lower'].map(arch => (
-      <div key={arch} className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <div className={`w-3 h-3 rounded-full ${arch === 'upper' ? 'bg-blue-400' : 'bg-emerald-400'}`}></div>
-          <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-            Arcata {arch === 'upper' ? 'Superiore' : 'Inferiore'}
+      <div key={arch} className="text-center w-full">
+        {/* Etichetta Arcata */}
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className={`w-2 h-2 rounded-full ${arch === 'upper' ? 'bg-blue-400' : 'bg-emerald-400'}`}></div>
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            {arch === 'upper' ? 'Arcata Superiore' : 'Arcata Inferiore'}
           </h4>
         </div>
-        <div className="bg-gradient-to-b from-slate-50 to-white rounded-2xl p-3 border border-slate-200 shadow-inner">
+
+        {/* SVG Container */}
+        <div className="relative">
           <svg 
-            width="340" 
-            height="200" 
-            viewBox="0 0 340 200"
-            className="overflow-visible"
+            width="100%" 
+            // ViewBox ottimizzato per contenere le etichette distanziate
+            viewBox="-40 -60 420 320" 
+            className="overflow-visible max-w-[420px] mx-auto"
+            style={{ maxHeight: '240px' }}
           >
-            {/* Linea mediana */}
+            {/* Linea mediana tratteggiata */}
             <line 
-              x1="165" y1="0" x2="165" y2="200" 
-              stroke="#CBD5E1" 
-              strokeWidth="1" 
+              x1="165" y1="-20" x2="165" y2="240" 
+              stroke="#E2E8F0" 
+              strokeWidth="1.5" 
               strokeDasharray="4,4"
             />
-            
-            {/* Etichette quadranti */}
-            <text x="80" y="195" fill="#94A3B8" fontSize="9" fontWeight="500">
-              {arch === 'upper' ? 'Q1' : 'Q4'}
-            </text>
-            <text x="250" y="195" fill="#94A3B8" fontSize="9" fontWeight="500">
-              {arch === 'upper' ? 'Q2' : 'Q3'}
-            </text>
             
             {/* Denti */}
             {DENTAL_ARCH_DATA[arch].map(tooth => {
@@ -331,14 +264,6 @@ const VisualOdontogram = ({ selected = [], onToggle, configured = [] }) => (
               );
             })}
           </svg>
-        </div>
-        
-        {/* Legenda tipi dente */}
-        <div className="flex justify-center gap-4 mt-2 text-xs text-slate-500">
-          <span>M = Molari</span>
-          <span>P = Premolari</span>
-          <span>C = Canini</span>
-          <span>I = Incisivi</span>
         </div>
       </div>
     ))}
