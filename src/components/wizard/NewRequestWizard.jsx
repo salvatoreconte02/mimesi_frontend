@@ -23,25 +23,40 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
     allergie: false, bruxismo: false, disfunzioni: false, dispositivi: false, handicap: false
   });
 
-  // Stato Dati Tecnici (Materiale/Colore Unici + Descrizione)
+  // Stato Dati Tecnici
   const [technicalInfo, setTechnicalInfo] = useState({
     material: 'zirconio',
     color: 'A2',
-    description: '' // <--- NUOVO CAMPO
+    description: ''
   });
 
+  // Stato Elementi Protesici
   const [configuredElements, setConfiguredElements] = useState([]); 
+  
+  // Stato Date
   const [dates, setDates] = useState({ delivery: '', tryIn1: '', tryIn2: '', tryIn3: '' });
+
+  // --- NUOVI STATI PER FILE E PARAMETRI IMPRONTA ---
+  const [files, setFiles] = useState([]); // Array di oggetti File
+  const [photos, setPhotos] = useState([]); // Array di oggetti File (Immagini)
+  const [impressionParams, setImpressionParams] = useState({
+    material: '',
+    disinfection: ''
+  });
 
   const next = () => setStep(s => s + 1);
   const back = () => setStep(s => s - 1);
 
   const handleFinalSubmit = () => {
+    // Simulazione di upload (nella realtà qui useresti FormData)
     const fullRequestData = {
       ...formData,
       technicalInfo: technicalInfo, 
       elements: configuredElements,
       dates: dates,
+      impressionParams: impressionParams, // Includiamo i parametri
+      filesCount: files.length,
+      photosCount: photos.length,
       createdBy: user.id,
       createdRole: user.role,
       studioReference: user.studio,
@@ -49,6 +64,9 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
     };
     
     console.log("Submitting Request:", fullRequestData);
+    console.log("Files:", files);
+    console.log("Photos:", photos);
+    
     onSubmit(fullRequestData);
   };
 
@@ -102,12 +120,20 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              setDates={setDates}
              onBack={back}
              onNext={next}
-             isAdmin={isAdmin} // <--- Passiamo isAdmin al figlio
+             isAdmin={isAdmin}
            />
         )}
 
         {step === 3 && (
-           <StepFiles key="step3" onBack={back} onNext={next} />
+           <StepFiles 
+             key="step3" 
+             // Passiamo stati e setter
+             files={files} setFiles={setFiles}
+             photos={photos} setPhotos={setPhotos}
+             impressionParams={impressionParams} setImpressionParams={setImpressionParams}
+             onBack={back} 
+             onNext={next} 
+           />
         )}
 
         {step === 4 && (
@@ -116,6 +142,9 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              formData={formData}
              configuredElements={configuredElements}
              dates={dates}
+             // Passiamo i dati file per mostrarli nel riepilogo (opzionale, ma consigliato)
+             files={files}
+             impressionParams={impressionParams}
              onBack={back}
              onSubmit={handleFinalSubmit}
            />
