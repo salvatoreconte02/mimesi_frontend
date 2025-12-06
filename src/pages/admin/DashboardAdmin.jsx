@@ -4,7 +4,7 @@ import { Mail, Trash2, User, FileText, Bell, Download, CheckCircle, XCircle } fr
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 // Importiamo il componente di visualizzazione condiviso
-import { RiepilogoScheda } from '../../components/wizard/WizardSteps';
+import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
 export default function DashboardAdmin() {
   const [inbox, setInbox] = useState([]);

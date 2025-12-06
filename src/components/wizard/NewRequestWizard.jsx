@@ -23,10 +23,11 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
     allergie: false, bruxismo: false, disfunzioni: false, dispositivi: false, handicap: false
   });
 
-  // NUOVO: Stato Dati Tecnici (Materiale/Colore Unici)
+  // Stato Dati Tecnici (Materiale/Colore Unici + Descrizione)
   const [technicalInfo, setTechnicalInfo] = useState({
     material: 'zirconio',
-    color: 'A2'
+    color: 'A2',
+    description: '' // <--- NUOVO CAMPO
   });
 
   const [configuredElements, setConfiguredElements] = useState([]); 
@@ -38,7 +39,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   const handleFinalSubmit = () => {
     const fullRequestData = {
       ...formData,
-      technicalInfo: technicalInfo, // Includiamo i dati tecnici globali
+      technicalInfo: technicalInfo, 
       elements: configuredElements,
       dates: dates,
       createdBy: user.id,
@@ -95,12 +96,13 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              key="step2"
              configuredElements={configuredElements} 
              setConfiguredElements={setConfiguredElements}
-             technicalInfo={technicalInfo} // Passiamo lo stato
-             setTechnicalInfo={setTechnicalInfo} // Passiamo il setter
+             technicalInfo={technicalInfo} 
+             setTechnicalInfo={setTechnicalInfo} 
              dates={dates}
              setDates={setDates}
              onBack={back}
              onNext={next}
+             isAdmin={isAdmin} // <--- Passiamo isAdmin al figlio
            />
         )}
 

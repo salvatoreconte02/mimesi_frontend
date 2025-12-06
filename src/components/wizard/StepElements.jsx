@@ -1,33 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Plus, Trash2, Info, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, Trash2, Info, AlertTriangle, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
 import Button from '../ui/Button';
 import VisualOdontogram, { checkAdjacency, GROUP_COLORS } from '../dental/VisualOdontogram';
 
 export default function StepElements({ 
   configuredElements, setConfiguredElements, 
-  technicalInfo, setTechnicalInfo, // <--- NUOVI PROPS DAL PADRE
+  technicalInfo, setTechnicalInfo, 
   dates, setDates, 
-  onBack, onNext 
+  onBack, onNext,
+  isAdmin 
 }) {
-  // Stato locale solo per la selezione temporanea dei denti nell'odontogramma
   const [selectedTeeth, setSelectedTeeth] = useState([]);
 
   // --- LOGICA GESTIONE DENTI ---
 
   const toggleTooth = (toothId) => {
-    // Se il dente è già presente in un gruppo configurato, impediamo la selezione e avvisiamo
     const isAlreadyConfigured = configuredElements.some(group => group.teeth.includes(toothId));
     
     if (isAlreadyConfigured) {
       if(window.confirm("Questo elemento è già parte di un gruppo. Vuoi eliminarlo per riconfigurarlo?")) {
-        // Rimuoviamo il gruppo che contiene quel dente
         setConfiguredElements(prev => prev.filter(group => !group.teeth.includes(toothId)));
       }
       return;
     }
 
-    // Toggle selezione normale
     setSelectedTeeth(prev => 
       prev.includes(toothId) ? prev.filter(t => t !== toothId) : [...prev, toothId]
     );
@@ -36,199 +33,226 @@ export default function StepElements({
   const handleAddGroup = () => {
     if (selectedTeeth.length === 0) return;
 
-    // 1. Controllo Adiacenza (Fondamentale per ponti o gruppi uniti)
     if (!checkAdjacency(selectedTeeth)) {
-      alert("ATTENZIONE: Gli elementi selezionati non sono adiacenti/contigui.\n\nPer creare un ponte o un gruppo unico, gli elementi devono essere vicini (es. 11-12-13).\nSe vuoi inserire elementi distanti, aggiungili uno alla volta.");
+      alert("ATTENZIONE: Gli elementi selezionati non sono adiacenti.\nPer creare un ponte, gli elementi devono essere vicini.");
       return;
     }
 
-    // 2. Creazione Oggetto Gruppo
     const newGroup = {
       id: Date.now(),
-      groupIndex: configuredElements.length, // Usato per il colore nell'odontogramma
-      teeth: [...selectedTeeth].sort(), // Ordiniamo sempre i denti (es. 11 prima di 12)
-      isBridge: selectedTeeth.length > 1 // Se più di uno, lo consideriamo unito/ponte
+      groupIndex: configuredElements.length, 
+      teeth: [...selectedTeeth].sort(), 
+      isBridge: selectedTeeth.length > 1
     };
 
-    // 3. Aggiornamento Stato
     setConfiguredElements([...configuredElements, newGroup]);
-    setSelectedTeeth([]); // Reset selezione
+    setSelectedTeeth([]); 
   };
 
   const removeGroup = (groupId) => {
     setConfiguredElements(prev => prev.filter(el => el.id !== groupId));
   };
 
-  // --- LOGICA VALIDAZIONE DATE ---
-
+  // --- LOGICA VALIDAZIONE ---
   const validateDates = () => {
     if (!dates.delivery) return false;
-
     const dDelivery = new Date(dates.delivery);
-    const dTry1 = dates.tryIn1 ? new Date(dates.tryIn1) : null;
-    const dTry2 = dates.tryIn2 ? new Date(dates.tryIn2) : null;
-    const dTry3 = dates.tryIn3 ? new Date(dates.tryIn3) : null;
     const now = new Date();
     now.setHours(0,0,0,0);
-
-    // La consegna non può essere nel passato
-    if (dDelivery < now) return false;
-
-    // Controllo sequenzialità temporale (Se le prove esistono, devono essere prima della consegna e in ordine)
-    if (dTry1 && dTry1 >= dDelivery) return false;
-    if (dTry2 && (dTry2 >= dDelivery || (dTry1 && dTry2 <= dTry1))) return false;
-    if (dTry3 && (dTry3 >= dDelivery || (dTry2 && dTry3 <= dTry2))) return false;
-
+    if (!isAdmin && dDelivery < now) return false;
     return true;
   };
 
   const isDatesValid = validateDates();
-  const canProceed = configuredElements.length > 0 && isDatesValid;
+  const isTechnicalInfoValid = technicalInfo.material && technicalInfo.color;
+  const canProceed = configuredElements.length > 0 && isDatesValid && isTechnicalInfoValid;
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
       
-      {/* SEZIONE 1: CONFIGURAZIONE TECNICA GLOBALE */}
-      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-        <h4 className="font-bold text-sm text-blue-800 mb-3 flex items-center gap-2">
-            <Info size={16}/> Specifiche Tecniche Globali
+      {/* 1. CONFIGURAZIONE TECNICA GLOBALE */}
+      <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm">
+        <h4 className="font-bold text-sm text-blue-800 mb-4 flex items-center gap-2">
+            <Info size={18}/> Specifiche Tecniche Globali
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <div>
-            <label className="text-xs font-bold text-neutral-500 mb-1 block uppercase">Materiale (Unico per richiesta)</label>
-            <select 
-                value={technicalInfo.material} 
-                onChange={(e) => setTechnicalInfo({...technicalInfo, material: e.target.value})} 
-                className="w-full p-2 text-sm border rounded bg-white outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-                <option value="zirconio">Zirconio</option>
-                <option value="disilicato">Disilicato di Litio</option>
-                <option value="metallo_ceramica">Metallo-Ceramica</option>
-                <option value="pmma">PMMA (Provvisorio)</option>
-                <option value="resina">Resina Stampata</option>
-            </select>
+                <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Materiale *</label>
+                <select 
+                    value={technicalInfo.material} 
+                    onChange={(e) => setTechnicalInfo({...technicalInfo, material: e.target.value})} 
+                    className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                >
+                    <option value="zirconio">Zirconio</option>
+                    <option value="disilicato">Disilicato di Litio</option>
+                    <option value="metallo_ceramica">Metallo-Ceramica</option>
+                    <option value="pmma">PMMA (Provvisorio)</option>
+                    <option value="resina">Resina Stampata</option>
+                </select>
             </div>
             <div>
-            <label className="text-xs font-bold text-neutral-500 mb-1 block uppercase">Colore Riferimento</label>
-            <select 
-                value={technicalInfo.color} 
-                onChange={(e) => setTechnicalInfo({...technicalInfo, color: e.target.value})} 
-                className="w-full p-2 text-sm border rounded bg-white outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-                <optgroup label="Scala Vita A"><option>A1</option><option>A2</option><option>A3</option><option>A3.5</option><option>A4</option></optgroup>
-                <optgroup label="Scala Vita B"><option>B1</option><option>B2</option><option>B3</option><option>B4</option></optgroup>
-                <optgroup label="Scala Vita C"><option>C1</option><option>C2</option><option>C3</option><option>C4</option></optgroup>
-                <optgroup label="Bleach"><option>BL1</option><option>BL2</option><option>BL3</option></optgroup>
-            </select>
+                <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Colore Riferimento *</label>
+                <select 
+                    value={technicalInfo.color} 
+                    onChange={(e) => setTechnicalInfo({...technicalInfo, color: e.target.value})} 
+                    className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                >
+                    <optgroup label="Scala Vita A"><option>A1</option><option>A2</option><option>A3</option><option>A3.5</option><option>A4</option></optgroup>
+                    <optgroup label="Scala Vita B"><option>B1</option><option>B2</option><option>B3</option><option>B4</option></optgroup>
+                    <optgroup label="Scala Vita C"><option>C1</option><option>C2</option><option>C3</option><option>C4</option></optgroup>
+                    <optgroup label="Bleach"><option>BL1</option><option>BL2</option><option>BL3</option></optgroup>
+                </select>
             </div>
+        </div>
+        
+        <div>
+           <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Descrizione e Specifica (Opzionale)</label>
+           <textarea 
+             className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 placeholder:text-neutral-400 resize-y min-h-[80px] shadow-sm" 
+             placeholder="Es. Corona avvitata su impianto, spalla in ceramica, dettagli anatomici particolari..." 
+             value={technicalInfo.description} 
+             onChange={(e) => setTechnicalInfo({...technicalInfo, description: e.target.value})}
+             rows={2}
+           />
         </div>
       </div>
 
-      {/* SEZIONE 2: ODONTOGRAMMA E SELEZIONE */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {/* 2. AREA DI LAVORO: ODONTOGRAMMA E CONTROLLI */}
+      <div className="space-y-6">
           
-          {/* Colonna SX: Odontogramma */}
-          <div className="xl:col-span-2 bg-white p-4 rounded-2xl border border-neutral-200 shadow-sm relative">
+          {/* A. ODONTOGRAMMA */}
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-purple-400 opacity-50"></div>
+            
             <VisualOdontogram 
                 selected={selectedTeeth} 
                 onToggle={toggleTooth} 
                 configured={configuredElements} 
             />
-            {/* Overlay indicativo se nessun dente selezionato */}
+            
             {selectedTeeth.length === 0 && (
-                <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-xs font-medium text-neutral-500 shadow-sm border">
-                    Seleziona i denti sull'immagine
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-xs font-bold text-neutral-500 shadow-sm border border-neutral-100 pointer-events-none animate-pulse">
+                    👆 Seleziona i denti qui sotto
                 </div>
             )}
           </div>
 
-          {/* Colonna DX: Azioni e Lista */}
-          <div className="xl:col-span-1 space-y-4">
+          {/* B. LOGICA GRUPPI (Griglia Affiancata con altezza fissa uguale) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Box Azione Aggiungi */}
-            <div className="bg-neutral-800 text-white p-5 rounded-2xl shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm font-bold text-neutral-400 uppercase">Selezione Corrente</span>
-                    <span className="bg-neutral-700 px-2 py-1 rounded text-xs font-mono">
-                        {selectedTeeth.length > 0 ? selectedTeeth.sort().join('-') : 'Nessuna'}
-                    </span>
+            {/* Box 1: Azione Aggiungi - Altezza Fissa */}
+            <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl shadow-sm flex flex-col h-[280px]">
+                <div className="flex-1">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Selezione Corrente</span>
+                        <span className={`px-3 py-1 rounded-lg text-sm font-mono font-bold ${selectedTeeth.length > 0 ? 'bg-white text-blue-700 border border-blue-200' : 'bg-blue-100 text-blue-300 border border-blue-100'}`}>
+                            {selectedTeeth.length > 0 ? selectedTeeth.sort().join('-') : '-'}
+                        </span>
+                    </div>
+                    
+                    <h5 className="text-blue-900 font-bold mb-2">Istruzioni Rapide</h5>
+                    <ul className="text-sm text-blue-800/70 space-y-2 list-disc list-inside">
+                        <li>Clicca sui denti nell'odontogramma per selezionarli.</li>
+                        <li>Per creare un <b>ponte</b>, seleziona più elementi adiacenti.</li>
+                        <li>Clicca "Aggiungi al Piano" per confermare il gruppo.</li>
+                    </ul>
                 </div>
-                
-                <p className="text-xs text-neutral-400 mb-4 leading-relaxed">
-                    Seleziona uno o più elementi <b>adiacenti</b> per creare un gruppo unico (o ponte). Clicca "Aggiungi" per confermare.
-                </p>
 
-                <Button 
-                    variant="primary" 
-                    className="w-full justify-center bg-white text-neutral-900 hover:bg-neutral-200 border-none"
+                {/* BOTTONE AGGIUSTATO */}
+                <button 
                     onClick={handleAddGroup}
                     disabled={selectedTeeth.length === 0}
+                    className={`
+                        w-full h-12 mt-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md
+                        ${selectedTeeth.length > 0 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-[1.01]' 
+                            : 'bg-blue-200 text-blue-400 cursor-not-allowed'}
+                    `}
                 >
-                    <Plus size={18} className="mr-2"/> Aggiungi al Piano
-                </Button>
+                    <Plus size={20} />
+                    <span>Aggiungi al Piano</span>
+                </button>
             </div>
 
-            {/* Lista Elementi Configurati */}
-            <div className="bg-white border border-neutral-200 rounded-2xl p-4 min-h-[200px]">
-                <h5 className="font-bold text-sm text-neutral-700 mb-3">Elementi in lavorazione ({configuredElements.length})</h5>
-                {configuredElements.length === 0 ? (
-                    <div className="text-center py-8 text-neutral-400 text-sm italic">
-                        Nessun elemento inserito.
-                    </div>
-                ) : (
-                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
-                        {configuredElements.map((group) => {
+            {/* Box 2: Lista Elementi - Altezza Fissa Uguale */}
+            <div className="bg-white border border-neutral-200 rounded-3xl p-6 h-[280px] flex flex-col shadow-sm">
+                <h5 className="font-bold text-neutral-800 mb-4 flex items-center justify-between shrink-0">
+                    <span>Elementi nel Piano</span>
+                    <span className="bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md text-xs">{configuredElements.length}</span>
+                </h5>
+                
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                    {configuredElements.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-neutral-300 border-2 border-dashed border-neutral-100 rounded-xl">
+                            <Info size={32} className="mb-2 opacity-50"/>
+                            <p className="text-sm font-medium">Nessun elemento inserito</p>
+                        </div>
+                    ) : (
+                        configuredElements.map((group) => {
                              const style = GROUP_COLORS[group.groupIndex % GROUP_COLORS.length];
                              return (
-                                <div key={group.id} className={`flex items-center justify-between p-2.5 rounded-lg border text-sm ${style.bg} ${style.border}`}>
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-white/50 ${style.text}`}>
+                                <motion.div 
+                                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                                    key={group.id} 
+                                    className={`flex items-center justify-between p-3 rounded-xl border ${style.bg} ${style.border}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-white shadow-sm ${style.text}`}>
                                             {group.teeth.length}
                                         </div>
-                                        <span className={`font-medium ${style.text}`}>
-                                            {group.isBridge ? 'Ponte' : 'Singolo'} <b>{group.teeth.join('-')}</b>
-                                        </span>
+                                        <div>
+                                            <p className={`text-sm font-bold ${style.text}`}>
+                                                {group.isBridge ? 'Ponte' : 'Singolo'}
+                                            </p>
+                                            <p className="text-xs text-neutral-500 font-mono">
+                                                {group.teeth.join('-')}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <button onClick={() => removeGroup(group.id)} className="text-neutral-400 hover:text-red-500 transition-colors">
+                                    <button 
+                                        onClick={() => removeGroup(group.id)} 
+                                        className="w-8 h-8 flex items-center justify-center rounded-full bg-white/50 hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors"
+                                    >
                                         <Trash2 size={16} />
                                     </button>
-                                </div>
+                                </motion.div>
                              )
-                        })}
-                    </div>
-                )}
+                        })
+                    )}
+                </div>
             </div>
           </div>
       </div>
 
-      {/* SEZIONE 3: DATE E SCADENZE */}
-      <div className="bg-neutral-50 p-5 rounded-2xl border border-neutral-200">
-         <div className="flex items-start gap-3 mb-4">
-             <Calendar className="text-primary mt-1" size={20} />
+      {/* 3. DATE E SCADENZE */}
+      <div className="bg-neutral-50 p-6 rounded-3xl border border-neutral-200">
+         <div className="flex items-center gap-3 mb-6">
+             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-neutral-200 shadow-sm text-primary">
+                <Calendar size={20} />
+             </div>
              <div>
                  <h4 className="font-bold text-neutral-800">Pianificazione Temporale</h4>
-                 <p className="text-xs text-neutral-500">
-                    Inserisci la data di consegna desiderata e le eventuali prove intermedie.
-                 </p>
+                 <p className="text-xs text-neutral-500">Definisci le scadenze per la lavorazione</p>
              </div>
          </div>
 
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
              <div className="col-span-2 md:col-span-1">
-               <label className="text-xs font-bold text-primary mb-1 block">Data Consegna (Richiesta) *</label>
+               <label className="text-xs font-bold text-primary mb-1.5 block uppercase tracking-wide">Data Consegna *</label>
                <input 
                  type="date" 
-                 className={`w-full p-2 border rounded bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 ${!dates.delivery ? 'border-primary/30' : 'border-primary font-bold'}`}
+                 className={`w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all ${!dates.delivery ? 'border-primary/30' : 'border-primary font-bold text-primary'}`}
                  value={dates.delivery} 
                  onChange={e => setDates({...dates, delivery: e.target.value})} 
                />
              </div>
              {[1, 2, 3].map(i => (
                <div key={i}>
-                 <label className="text-xs font-bold text-neutral-500 mb-1 block">Prova {i} (Opzionale)</label>
+                 <label className="text-xs font-bold text-neutral-400 mb-1.5 block uppercase tracking-wide">Prova {i}</label>
                  <input 
                    type="date" 
-                   className="w-full p-2 border border-neutral-200 rounded bg-white text-sm text-neutral-600 outline-none focus:ring-2 focus:ring-neutral-200"
+                   className="w-full p-3 border border-neutral-200 rounded-xl bg-white text-sm text-neutral-600 outline-none focus:ring-2 focus:ring-neutral-200 shadow-sm transition-all hover:border-neutral-300"
                    value={dates[`tryIn${i}`]} 
                    onChange={e => setDates({...dates, [`tryIn${i}`]: e.target.value})} 
                  />
@@ -236,22 +260,23 @@ export default function StepElements({
              ))}
          </div>
 
-         {/* Disclaimer Obbligatorio */}
-         <div className="mt-4 flex gap-2 items-start bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800 text-xs">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-            <p>
-                <b>Nota Importante:</b> Le date indicate sono una preferenza del Dottore. 
-                L'amministrazione confermerà la fattibilità temporale o proporrà variazioni in fase di accettazione del preventivo.
-                Assicurati che le date delle prove siano antecedenti alla consegna.
-            </p>
-         </div>
+         {!isAdmin && (
+            <div className="mt-6 flex gap-3 items-start bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-yellow-800 text-xs">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <p className="leading-relaxed">
+                    <b>Nota:</b> Le date indicate sono preferenziali. L'amministrazione confermerà la fattibilità o proporrà variazioni.
+                </p>
+            </div>
+         )}
       </div>
 
       {/* FOOTER NAVIGAZIONE */}
-      <div className="flex justify-between mt-6 pt-4 border-t border-neutral-100">
+      <div className="flex justify-between pt-6 border-t border-neutral-100">
         <Button variant="ghost" onClick={onBack}>← Indietro</Button>
         <div className={!canProceed ? 'opacity-50 pointer-events-none' : ''}>
-             <Button onClick={onNext} disabled={!canProceed}>Avanti →</Button>
+             <Button onClick={onNext} disabled={!canProceed}>
+                Prosegui <ArrowRight size={18} className="ml-2"/>
+             </Button>
         </div>
       </div>
     </motion.div>
