@@ -131,11 +131,6 @@ export default function StepElements({
                 configured={configuredElements} 
             />
             
-            {selectedTeeth.length === 0 && (
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-xs font-bold text-neutral-500 shadow-sm border border-neutral-100 pointer-events-none animate-pulse">
-                    👆 Seleziona i denti qui sotto
-                </div>
-            )}
           </div>
 
           {/* B. LOGICA GRUPPI (Griglia Affiancata con altezza fissa uguale) */}

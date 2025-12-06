@@ -222,7 +222,7 @@ const AnatomicalTooth = ({ data, isSelected, configuredGroup, onToggle }) => {
 // --- COMPONENTE PRINCIPALE ---
 
 const VisualOdontogram = ({ selected = [], onToggle, configured = [] }) => (
-  <div className="flex flex-col gap-6 justify-center items-center py-4 select-none w-full">
+  <div className="flex flex-col lg:flex-row gap-6 justify-center items-center py-4 select-none w-full">
     {['upper', 'lower'].map(arch => (
       <div key={arch} className="text-center w-full">
         {/* Etichetta Arcata */}
