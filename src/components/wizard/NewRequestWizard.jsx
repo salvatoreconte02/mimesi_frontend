@@ -37,8 +37,8 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   const [dates, setDates] = useState({ delivery: '', tryIn1: '', tryIn2: '', tryIn3: '' });
 
   // --- NUOVI STATI PER FILE E PARAMETRI IMPRONTA ---
-  const [files, setFiles] = useState([]); // Array di oggetti File
-  const [photos, setPhotos] = useState([]); // Array di oggetti File (Immagini)
+  const [files, setFiles] = useState([]); 
+  const [photos, setPhotos] = useState([]); 
   const [impressionParams, setImpressionParams] = useState({
     material: '',
     disinfection: ''
@@ -47,60 +47,63 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   const next = () => setStep(s => s + 1);
   const back = () => setStep(s => s - 1);
 
+  // --- LOGICA DI INVIO ---
   const handleFinalSubmit = () => {
-    // Simulazione di upload (nella realtà qui useresti FormData)
+    
+    // 1. Costruiamo l'oggetto completo
     const fullRequestData = {
+      id: Date.now(), // ID univoco
       ...formData,
       technicalInfo: technicalInfo, 
       elements: configuredElements,
       dates: dates,
-      impressionParams: impressionParams, // Includiamo i parametri
-      filesCount: files.length,
-      photosCount: photos.length,
+      impressionParams: impressionParams,
+      // Nota: i file reali non possono essere salvati in LocalStorage (troppo grandi).
+      // Salviamo solo i metadati per la demo.
+      filesMetadata: files.map(f => ({ name: f.name, size: f.size })),
+      photosMetadata: photos.map(f => ({ name: f.name, size: f.size })),
       createdBy: user.id,
       createdRole: user.role,
       studioReference: user.studio,
-      status: 'new'
+      status: 'new',
+      timestamp: new Date().toISOString()
     };
-    
-    console.log("Submitting Request:", fullRequestData);
-    console.log("Files:", files);
-    console.log("Photos:", photos);
-    
-    onSubmit(fullRequestData);
+
+    // 2. Creiamo il messaggio per la Inbox Admin (Simulazione Backend)
+    const adminMessage = {
+      id: fullRequestData.id,
+      from: `${formData.nomeDottore}`,
+      subject: `Nuova Prescrizione: ${formData.cognome} ${formData.nome}`,
+      date: new Date().toISOString(),
+      read: false,
+      preview: `Paziente: ${formData.cognome} • ${technicalInfo.material} • ${configuredElements.length} elementi`,
+      fullData: fullRequestData, // Payload completo
+      doctorInfo: {
+        name: user.nome,
+        surname: user.cognome,
+        studio: user.studio
+      }
+    };
+
+    // 3. Salvataggio in LocalStorage (Inbox Admin)
+    const existingInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+    const updatedInbox = [adminMessage, ...existingInbox];
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updatedInbox));
+
+    // 4. Feedback e Chiusura
+    console.log("Richiesta Inviata:", fullRequestData);
+    onSubmit(fullRequestData); 
   };
 
   return (
     <div className="space-y-6">
-      {/* HEADER WIZARD */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
-        <div>
-           <h2 className="text-2xl font-bold text-primary">Nuova Prescrizione (MPO)</h2>
-           <p className="text-sm text-neutral-500 font-medium flex items-center gap-2">
-             {isAdmin ? (
-               <span className="text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Modalità Admin</span>
-             ) : (
-               <span>Studio Richiedente: <span className="text-neutral-700 font-bold">{formData.nomeStudio || 'Non specificato'}</span></span>
-             )}
-           </p>
-        </div>
-        
-        <div className="flex flex-col items-end gap-1">
-            <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm border border-primary/20">
-                Step {step} di 4
-            </span>
-            <div className="flex gap-1 mt-1">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'w-6 bg-primary' : 'w-2 bg-neutral-200'}`}></div>
-                ))}
-            </div>
-        </div>
-      </div>
-
+      {/* HEADER WIZARD... */}
+      
       {/* STEP CONTENT */}
       <AnimatePresence mode="wait">
         {step === 1 && (
-           <StepPatient 
+            // ... StepPatient ...
+            <StepPatient 
              key="step1" 
              formData={formData} 
              setFormData={setFormData} 
@@ -110,7 +113,8 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
         )}
         
         {step === 2 && (
-           <StepElements 
+            // ... StepElements ...
+            <StepElements 
              key="step2"
              configuredElements={configuredElements} 
              setConfiguredElements={setConfiguredElements}
@@ -125,9 +129,9 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
         )}
 
         {step === 3 && (
+            // ... StepFiles ...
            <StepFiles 
              key="step3" 
-             // Passiamo stati e setter
              files={files} setFiles={setFiles}
              photos={photos} setPhotos={setPhotos}
              impressionParams={impressionParams} setImpressionParams={setImpressionParams}
@@ -141,9 +145,10 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              key="step4"
              formData={formData}
              configuredElements={configuredElements}
+             technicalInfo={technicalInfo} 
              dates={dates}
-             // Passiamo i dati file per mostrarli nel riepilogo (opzionale, ma consigliato)
              files={files}
+             photos={photos} // <--- ECCO LA MODIFICA FONDAMENTALE
              impressionParams={impressionParams}
              onBack={back}
              onSubmit={handleFinalSubmit}

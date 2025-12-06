@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Trash2, User, FileText, Bell, Download, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Trash2, User, FileText, Bell, Download, CheckCircle, XCircle, Info, Calendar, Layers, Box, Image as ImageIcon } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-// Importiamo il componente di visualizzazione condiviso
-import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
 export default function DashboardAdmin() {
   const [inbox, setInbox] = useState([]);
@@ -30,7 +28,7 @@ export default function DashboardAdmin() {
 
   // Funzione per cancellare
   const handleDelete = (id, e) => {
-    e.stopPropagation(); // Evita di selezionare il messaggio mentre lo cancelli
+    e.stopPropagation(); 
     const updatedInbox = inbox.filter(m => m.id !== id);
     setInbox(updatedInbox);
     if (selectedMsg?.id === id) setSelectedMsg(null);
@@ -100,7 +98,6 @@ export default function DashboardAdmin() {
                   </p>
                   <p className="text-xs text-neutral-400 line-clamp-1">{msg.preview}</p>
                   
-                  {/* Tasto Delete rapido on hover */}
                   <button 
                     onClick={(e) => handleDelete(msg.id, e)}
                     className="absolute right-2 bottom-2 p-1.5 text-neutral-300 hover:text-error hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -146,42 +143,37 @@ export default function DashboardAdmin() {
                   </div>
                 </div>
 
-                {/* Corpo Dettaglio (Scrollabile) */}
+                {/* Corpo Dettaglio */}
                 <div className="flex-1 overflow-y-auto p-6 bg-neutral-50/50">
                   {selectedMsg.fullData ? (
-                    /* CASO 1: È una richiesta completa generata dal nuovo Wizard */
                     <div className="space-y-6">
                       
-                      {/* Componente visualizzazione scheda (condiviso) */}
+                      {/* Componente visualizzazione scheda (Definito sotto) */}
                       <RiepilogoScheda 
-                        fullData={selectedMsg.fullData} 
-                        doctorInfo={selectedMsg.doctorInfo} 
+                        data={selectedMsg.fullData} 
                       />
 
-                      {/* Sezione Download File (Simulata) */}
+                      {/* Sezione Download File */}
                       <div className="bg-white border border-neutral-200 rounded-xl p-4 flex items-center justify-between">
                          <div className="flex items-center gap-3">
                             <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
                                <FileText size={20} />
                             </div>
                             <div>
-                               <p className="font-bold text-sm text-neutral-800">Scansioni Intraorali.zip</p>
-                               <p className="text-xs text-neutral-500">24.5 MB • Caricato dal Dottore</p>
+                               <p className="font-bold text-sm text-neutral-800">Scansioni & Allegati</p>
+                               <p className="text-xs text-neutral-500">
+                                  {selectedMsg.fullData.filesMetadata?.length || 0} File • {selectedMsg.fullData.photosMetadata?.length || 0} Foto
+                               </p>
                             </div>
                          </div>
                          <Button variant="secondary" className="text-xs">
-                            <Download size={14} className="mr-2" /> Scarica
+                            <Download size={14} className="mr-2" /> Scarica ZIP
                          </Button>
                       </div>
-
                     </div>
                   ) : (
-                    /* CASO 2: Messaggio legacy o semplice testo */
                     <div className="bg-white p-6 rounded-xl border border-neutral-200">
-                      <p className="text-neutral-600 mb-4">{selectedMsg.preview}</p>
-                      <div className="p-4 bg-yellow-50 rounded-lg text-yellow-800 text-sm border border-yellow-100">
-                        Nota: Questa richiesta non contiene dati strutturati MPO completi.
-                      </div>
+                      <p className="text-neutral-600">{selectedMsg.preview}</p>
                     </div>
                   )}
                 </div>
@@ -198,11 +190,9 @@ export default function DashboardAdmin() {
 
               </motion.div>
             ) : (
-              /* EMPTY STATE */
               <div className="h-full bg-neutral-50 rounded-2xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center text-neutral-400">
                 <Mail size={64} className="mb-4 opacity-10" />
-                <p className="font-medium">Seleziona una richiesta dall'elenco</p>
-                <p className="text-sm opacity-70">per visualizzare i dettagli completi e validare l'ordine</p>
+                <p className="font-medium">Seleziona una richiesta</p>
               </div>
             )}
           </AnimatePresence>
@@ -210,4 +200,145 @@ export default function DashboardAdmin() {
       </div>
     </div>
   );
+}
+
+// --- COMPONENTE INTERNO PER VISUALIZZARE LA SCHEDA (READ-ONLY) ---
+function RiepilogoScheda({ data }) {
+    if(!data) return null;
+
+    // Per sicurezza, se i metadati non esistono, usiamo array vuoti
+    const filesMeta = data.filesMetadata || [];
+    const photosMeta = data.photosMetadata || [];
+    const configuredElements = data.elements || [];
+
+    return (
+        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+            {/* Header Scheda Interno (opzionale se già c'è fuori) */}
+            <div className="bg-neutral-50 px-6 py-4 border-b border-neutral-200">
+                <h3 className="font-bold text-neutral-700">Dettaglio Prescrizione</h3>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* CELLA 1: Anagrafica + Materiali */}
+                <div className="space-y-6">
+                    <div>
+                        <h4 className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                            <User size={14}/> Dati Paziente
+                        </h4>
+                        <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-xs text-neutral-500">Paziente</span>
+                                <span className="font-bold text-sm text-neutral-800">{data.nome} {data.cognome}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-xs text-neutral-500">Codice</span>
+                                <span className="font-mono text-xs bg-white px-2 rounded border">{data.codicePaziente}</span>
+                            </div>
+                            {(data.allergie || data.bruxismo) && (
+                                <div className="mt-3 pt-2 border-t border-neutral-200 text-xs text-red-500 font-medium">
+                                    ⚠ Note: {[data.allergie && 'Allergie', data.bruxismo && 'Bruxismo'].filter(Boolean).join(', ')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                            <Layers size={14}/> Materiali
+                        </h4>
+                        <div className="flex gap-3">
+                            <div className="flex-1 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                                <span className="block text-[9px] text-blue-400 uppercase font-bold">Materiale</span>
+                                <span className="text-sm font-bold text-blue-800 capitalize">{data.technicalInfo?.material?.replace('_', ' ')}</span>
+                            </div>
+                            <div className="flex-1 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
+                                <span className="block text-[9px] text-purple-400 uppercase font-bold">Colore</span>
+                                <span className="text-sm font-bold text-purple-800">{data.technicalInfo?.color}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CELLA 2: Elementi */}
+                <div className="flex flex-col">
+                    <h4 className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                        <Info size={14}/> Configurazione Elementi
+                    </h4>
+                    <div className="bg-neutral-50 rounded-xl p-2 border border-neutral-200 flex-1 min-h-[150px] space-y-2">
+                        {configuredElements.map((el, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-lg border border-neutral-100 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center text-[10px] font-bold">
+                                        {el.teeth.length}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-xs text-neutral-700">{el.isBridge ? 'Ponte' : 'Singolo'}</p>
+                                        <p className="text-[10px] text-neutral-400">{el.teeth.join('-')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* CELLA 3: File */}
+                <div>
+                     <h4 className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                        <FileText size={14}/> File & Impronta
+                     </h4>
+                     <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 space-y-2">
+                        {filesMeta.length > 0 ? (
+                            <ul className="space-y-1">
+                                {filesMeta.map((f, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-xs text-neutral-600">
+                                        <Box size={12} className="text-blue-500"/> <span className="truncate">{f.name}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : <span className="text-xs text-neutral-400 italic">Nessun file 3D</span>}
+                        
+                        {photosMeta.length > 0 && (
+                            <div className="pt-2 border-t border-neutral-200 text-xs font-medium text-neutral-600 flex items-center gap-1">
+                                <ImageIcon size={12}/> {photosMeta.length} Foto allegate
+                            </div>
+                        )}
+                        
+                        <div className="pt-2 border-t border-neutral-200 grid grid-cols-2 gap-2">
+                            <div>
+                                <span className="text-[9px] text-neutral-400 block uppercase">Rilevazione</span>
+                                <span className="text-xs font-medium capitalize">{data.impressionParams?.material?.replace('_', ' ') || '-'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[9px] text-neutral-400 block uppercase">Disinfezione</span>
+                                <span className="text-xs font-medium capitalize">{data.impressionParams?.disinfection?.replace('_', ' ') || '-'}</span>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+
+                {/* CELLA 4: Date */}
+                <div>
+                    <h4 className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                        <Calendar size={14}/> Pianificazione
+                    </h4>
+                    <div className="space-y-2">
+                        <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex justify-between items-center">
+                            <span className="text-xs font-bold text-green-700">Consegna</span>
+                            <span className="font-bold text-green-800">{data.dates?.delivery ? new Date(data.dates.delivery).toLocaleDateString() : '-'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            {[1,2,3].map(i => data.dates?.[`tryIn${i}`] && (
+                                <div key={i} className="flex-1 bg-white border border-dashed border-neutral-300 p-2 rounded-lg text-center">
+                                    <span className="block text-[9px] text-neutral-400 uppercase font-bold">Prova {i}</span>
+                                    <span className="text-xs font-medium text-neutral-700">{new Date(data.dates[`tryIn${i}`]).toLocaleDateString()}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
 }
