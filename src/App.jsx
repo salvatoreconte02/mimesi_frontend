@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import useAuthStore from './store/authStore';
 import Sidebar from './components/layout/Sidebar';
-import DashboardDottore from './pages/dottore/DashboardDottore';
-import DashboardAdmin from './pages/admin/DashboardAdmin'; // <--- Importa il nuovo file
-import DashboardGeneric from './pages/Dashboard'; // La tua dashboard generica attuale (rinominala o importala come preferisci)
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
+
+// --- IMPORT PAGINE ---
+import DashboardDottore from './pages/dottore/DashboardDottore';
+import LavorazioniDottore from './pages/dottore/LavorazioniDottore';
+import DashboardAdmin from './pages/admin/DashboardAdmin'; // Assicurati di creare questo file (vedi sotto)
+import DashboardGeneric from './pages/Dashboard'; // Dashboard fallback (es. Operatore)
 
 function Login() {
   const login = useAuthStore(s => s.login);
@@ -43,41 +46,49 @@ function Login() {
 }
 
 function App() {
-  const { isAuthenticated, user } = useAuthStore(); // Recuperiamo anche 'user' per controllare il ruolo
+  const { isAuthenticated, user } = useAuthStore();
   const [page, setPage] = useState('dashboard');
 
   if (!isAuthenticated) return <Login />;
 
-  // LOGICA DI ROUTING BASATA SUL RUOLO
-  const renderDashboard = () => {
-    if (page !== 'dashboard') {
-        // Se non siamo sulla home, mostra il placeholder "In sviluppo"
-        return (
-            <div className="p-8 flex items-center justify-center h-screen opacity-50">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-neutral-300">Modulo in Sviluppo</h2>
-              <p className="text-neutral-400">Questa sezione sarà disponibile nella prossima release.</p>
-            </div>
-          </div>
-        )
+  // LOGICA DI ROUTING CENTRALIZZATA
+  const renderContent = () => {
+    
+    // 1. PAGINE SPECIFICHE (Es. Lavorazioni Dottore)
+    if (page === 'lavorazioni') {
+       // Se sei un dottore vedi la tua vista, altrimenti (es. admin) potresti vederne un'altra
+       if (user?.role === 'dottore') return <LavorazioniDottore />;
+       // TODO: Aggiungere LavorazioniAdmin se necessario
     }
 
-    // Se siamo sulla Dashboard, quale mostriamo?
-    switch(user?.role) { // Assumiamo che il tuo authStore salvi il ruolo in user.role
-        case 'admin':
-            return <DashboardAdmin />;
-        case 'dottore':
-            return <DashboardDottore />;
-        default:
-            return <DashboardGeneric />;
+    // 2. DASHBOARD (Differenziata per ruolo)
+    if (page === 'dashboard') {
+        switch(user?.role) {
+            case 'admin':
+                return <DashboardAdmin />;
+            case 'dottore':
+                return <DashboardDottore />;
+            default:
+                return <DashboardGeneric />; // Fallback per Operatore
+        }
     }
+
+    // 3. PAGINE NON ANCORA IMPLEMENTATE (Placeholder)
+    return (
+        <div className="p-8 flex items-center justify-center h-screen opacity-50">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-neutral-300">Modulo in Sviluppo</h2>
+              <p className="text-neutral-400">La sezione <strong>{page}</strong> sarà disponibile nella prossima release.</p>
+            </div>
+        </div>
+    );
   };
 
   return (
     <div className="bg-neutral-50 min-h-screen pl-64">
       <Sidebar setPage={setPage} />
       <main className="min-h-screen">
-        {renderDashboard()}
+        {renderContent()}
       </main>
     </div>
   );
