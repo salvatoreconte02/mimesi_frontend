@@ -268,7 +268,21 @@ export default function DashboardDottore() {
                          <h4 className="font-bold text-lg mt-1">Mario Rossi</h4>
                          <p className="text-sm text-neutral-500">Corona Singola - Zirconio A3</p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">In Ceramizzazione</span>
+                      
+                      {/* --- MODIFICA QUI: PERCENTUALE DI COMPLETAMENTO --- */}
+                      <div className="flex flex-col items-end min-w-[100px]">
+                         <span className="text-xs font-bold text-primary mb-1">65%</span>
+                         <div className="w-24 h-2 bg-neutral-100 rounded-full overflow-hidden">
+                            <motion.div 
+                               initial={{ width: 0 }} 
+                               animate={{ width: "65%" }} 
+                               transition={{ duration: 1, ease: "easeOut" }}
+                               className="h-full bg-primary"
+                            />
+                         </div>
+                      </div>
+                      {/* ------------------------------------------------ */}
+
                    </div>
                    <div className="flex items-center gap-4 text-xs text-neutral-400 border-t pt-3 mt-3">
                       <span className="flex items-center gap-1"><Calendar size={12}/> Consegna: 12/02/2025</span>
