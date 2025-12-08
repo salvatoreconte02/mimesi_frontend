@@ -7,8 +7,9 @@ import { motion } from 'framer-motion';
 // --- IMPORT PAGINE ---
 import DashboardDottore from './pages/dottore/DashboardDottore';
 import LavorazioniDottore from './pages/dottore/LavorazioniDottore';
-import DashboardAdmin from './pages/admin/DashboardAdmin'; // Assicurati di creare questo file (vedi sotto)
-import DashboardGeneric from './pages/Dashboard'; // Dashboard fallback (es. Operatore)
+import InboxDottore from './pages/dottore/InboxDottore'; // <--- NUOVO IMPORT
+import DashboardAdmin from './pages/admin/DashboardAdmin';
+import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
   const login = useAuthStore(s => s.login);
@@ -54,12 +55,16 @@ function App() {
   // LOGICA DI ROUTING CENTRALIZZATA
   const renderContent = () => {
     
-    // 1. PAGINE SPECIFICHE (Es. Lavorazioni Dottore)
+    // 1. PAGINE SPECIFICHE (Es. Lavorazioni, Inbox)
     if (page === 'lavorazioni') {
-       // Se sei un dottore vedi la tua vista, altrimenti (es. admin) potresti vederne un'altra
        if (user?.role === 'dottore') return <LavorazioniDottore />;
-       // TODO: Aggiungere LavorazioniAdmin se necessario
     }
+
+    // --- NUOVA ROTTA INBOX ---
+    if (page === 'inbox') {
+        if (user?.role === 'dottore') return <InboxDottore />;
+    }
+    // -------------------------
 
     // 2. DASHBOARD (Differenziata per ruolo)
     if (page === 'dashboard') {
