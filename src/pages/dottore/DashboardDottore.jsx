@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, FileText, Clock, CheckCircle, 
-  AlertCircle, Calendar, Save, Eye, Check
+  AlertCircle, Calendar, Save, Eye, Check,
+  MessageSquare, ChevronRight, Mail // <--- Nuove icone importate
 } from 'lucide-react';
 
 import Card from '../../components/ui/Card'; 
@@ -11,42 +12,40 @@ import Button from '../../components/ui/Button';
 // IMPORT COMPONENTE WIZARD RIUTILIZZABILE
 import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
-// --- DEFINIZIONE DEGLI STEP ---
+// --- DATI MOCK PER WIDGET INBOX ---
+const WIDGET_MESSAGES = [
+  { id: 1, from: 'Amministrazione', subject: 'Preventivo Pronto: Mario Rossi', date: '10:30', unread: true },
+  { id: 2, from: 'Reparto CAD', subject: 'Richiesta chiarimento: Luigi Bianchi', date: 'Ieri', unread: true },
+  { id: 3, from: 'Reparto Ceramica', subject: 'Aggiornamento Consegna Verdi', date: '25 Gen', unread: false },
+];
+
+// --- DEFINIZIONE DEGLI STEP WIZARD ---
 const WIZARD_STEPS = [
   { id: 1, label: "Paziente" },
   { id: 2, label: "Lavorazione" },
-  { id: 3, label: "File" }, // Corretto
+  { id: 3, label: "File" }, 
   { id: 4, label: "Riepilogo" }
 ];
 
-// --- COMPONENTE INDICATORE (Stile Filling + Label, Allineato a Destra) ---
+// --- COMPONENTE INDICATORE STEP ---
 const StepIndicatorRight = ({ currentStep }) => {
-  // Calcolo percentuale
   const progressPercentage = ((currentStep - 1) / (WIZARD_STEPS.length - 1)) * 100;
 
   return (
     <div className="relative w-[320px] h-12 flex items-center"> 
-      
-      {/* 1. BARRA DI SFONDO (Grigia Sottile) */}
       <div className="absolute top-1/2 left-0 w-full h-[2px] bg-neutral-100 -translate-y-1/2 rounded-full z-0" />
-
-      {/* 2. BARRA DI PROGRESSO (Blu Animata) */}
       <motion.div 
         className="absolute top-1/2 left-0 h-[2px] bg-primary -translate-y-1/2 rounded-full z-0 origin-left"
         initial={{ width: 0 }}
         animate={{ width: `${progressPercentage}%` }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
       />
-
-      {/* 3. CERCHI E LABEL */}
       <div className="relative z-10 flex justify-between w-full">
         {WIZARD_STEPS.map((step) => {
           const isCompleted = step.id < currentStep;
           const isActive = step.id === currentStep;
-
           return (
             <div key={step.id} className="flex flex-col items-center relative">
-              {/* Cerchio */}
               <motion.div 
                 initial={false}
                 animate={{
@@ -60,14 +59,8 @@ const StepIndicatorRight = ({ currentStep }) => {
                   ${!isActive && !isCompleted ? 'text-neutral-300' : 'text-white shadow-md'}
                 `}
               >
-                {isCompleted ? (
-                  <Check size={12} strokeWidth={3} />
-                ) : (
-                  <span className="text-[10px] font-bold">{step.id}</span>
-                )}
+                {isCompleted ? <Check size={12} strokeWidth={3} /> : <span className="text-[10px] font-bold">{step.id}</span>}
               </motion.div>
-
-              {/* LABEL (Posizionata sotto in modo assoluto per non rompere il layout) */}
               <motion.span 
                 animate={{ 
                   color: isActive ? '#1E293B' : '#94A3B8', 
@@ -85,7 +78,7 @@ const StepIndicatorRight = ({ currentStep }) => {
   );
 };
 
-// --- SOTTO-COMPONENTE: PREVENTIVI (Invariato) ---
+// --- SOTTO-COMPONENTE: PREVENTIVI ---
 const PreventiviDaFirmare = () => {
   const [showOtp, setShowOtp] = useState(null);
 
@@ -112,7 +105,6 @@ const PreventiviDaFirmare = () => {
           <p className="text-sm text-neutral-600">Ponte in Zirconio (3 elementi) - Rif. Prev #2024-88</p>
           <p className="text-sm font-bold text-primary mt-1">Totale: € 450,00</p>
         </div>
-        
         <div className="flex gap-2 w-full md:w-auto">
           {!showOtp ? (
             <>
@@ -146,8 +138,6 @@ export default function DashboardDottore() {
       
       {/* HEADER PRINCIPALE */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4 min-h-[60px]">
-        
-        {/* TITOLO (SINISTRA) - Sempre visibile, cambia solo il testo */}
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">
             {view === 'new-request' ? 'Nuova Prescrizione' : 'Studio Odontoiatrico Albanese'}
@@ -159,18 +149,15 @@ export default function DashboardDottore() {
         
         {/* ZONA ACTION (DESTRA) */}
         <div className="flex gap-3 items-center">
-           
-           {/* Se siamo in 'new-request', mostra lo STEPPER a DESTRA */}
            {view === 'new-request' ? (
              <motion.div 
                 initial={{ opacity: 0, x: 20 }} 
                 animate={{ opacity: 1, x: 0 }}
-                className="mr-24" /* <--- MODIFICA QUI: Aggiunto margine destro abbondante per spostarlo a sinistra */
+                className="mr-24"
              >
                 <StepIndicatorRight currentStep={wizardStep} />
              </motion.div>
            ) : (
-             // Altrimenti mostra i bottoni normali
              <>
                <Button 
                  variant={view === 'quotes' ? 'primary' : 'secondary'} 
@@ -225,6 +212,7 @@ export default function DashboardDottore() {
         {/* VISTA 3: DASHBOARD DI RIEPILOGO (DEFAULT) */}
         {view === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+            
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="flex items-center gap-4 bg-primary/5 border-primary/20">
@@ -256,11 +244,14 @@ export default function DashboardDottore() {
               </Card>
             </div>
 
-            {/* Lista Lavorazioni Attive */}
+            {/* Layout a due colonne */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* COLONNA SX: LAVORAZIONI ATTIVE */}
               <div className="space-y-4">
                 <h3 className="font-bold text-neutral-800 text-lg">Lavorazioni Attive</h3>
                 
+                {/* CARD 1: Mario Rossi (Percentuale) */}
                 <Card className="group hover:border-primary/50 transition-colors cursor-pointer">
                    <div className="flex justify-between items-start mb-3">
                       <div>
@@ -269,7 +260,7 @@ export default function DashboardDottore() {
                          <p className="text-sm text-neutral-500">Corona Singola - Zirconio A3</p>
                       </div>
                       
-                      {/* --- MODIFICA QUI: PERCENTUALE DI COMPLETAMENTO --- */}
+                      {/* BARRA PROGRESSO PER PRIVACY */}
                       <div className="flex flex-col items-end min-w-[100px]">
                          <span className="text-xs font-bold text-primary mb-1">65%</span>
                          <div className="w-24 h-2 bg-neutral-100 rounded-full overflow-hidden">
@@ -281,8 +272,6 @@ export default function DashboardDottore() {
                             />
                          </div>
                       </div>
-                      {/* ------------------------------------------------ */}
-
                    </div>
                    <div className="flex items-center gap-4 text-xs text-neutral-400 border-t pt-3 mt-3">
                       <span className="flex items-center gap-1"><Calendar size={12}/> Consegna: 12/02/2025</span>
@@ -290,6 +279,7 @@ export default function DashboardDottore() {
                    </div>
                 </Card>
 
+                {/* CARD 2: Luigi Bianchi (In Prova - Esplicito) */}
                 <Card className="group hover:border-primary/50 transition-colors cursor-pointer border-l-4 border-l-warning">
                    <div className="flex justify-between items-start mb-3">
                       <div>
@@ -297,7 +287,7 @@ export default function DashboardDottore() {
                          <h4 className="font-bold text-lg mt-1">Luigi Bianchi</h4>
                          <p className="text-sm text-neutral-500">Ponte (3 Elementi)</p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-warning text-white">IN PROVA</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-warning text-white animate-pulse">IN PROVA</span>
                    </div>
                    <div className="text-xs text-neutral-500 bg-neutral-50 p-2 rounded">
                       ⚠️ Dispositivo spedito allo studio. In attesa di esito prova.
@@ -305,21 +295,44 @@ export default function DashboardDottore() {
                 </Card>
               </div>
 
-              {/* Storico / Recenti */}
+              {/* COLONNA DX: MESSAGGI RECENTI (EX STORICO) */}
               <div className="space-y-4">
-                 <h3 className="font-bold text-neutral-800 text-lg">Storico Recente</h3>
-                 <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
-                   {[1,2,3].map((i) => (
-                      <div key={i} className="p-4 border-b last:border-0 hover:bg-neutral-50 flex justify-between items-center">
-                         <div>
-                            <p className="font-medium text-sm">Paziente Test {i}</p>
-                            <p className="text-xs text-neutral-400">Completato il 20/01/2025</p>
+                 <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-neutral-800 text-lg">Messaggi Recenti</h3>
+                    <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Vedi tutti</span>
+                 </div>
+                 
+                 <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-sm">
+                   {WIDGET_MESSAGES.map((msg) => (
+                      <div key={msg.id} className="p-4 border-b last:border-0 hover:bg-neutral-50 flex gap-3 items-start cursor-pointer transition-colors">
+                         {/* Indicatore Letto/Non Letto */}
+                         <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${msg.unread ? 'bg-primary' : 'bg-transparent'}`} />
+                         
+                         <div className="flex-1 min-w-0">
+                            <div className="flex justify-between mb-1">
+                               <p className={`text-sm ${msg.unread ? 'font-bold text-neutral-800' : 'font-medium text-neutral-600'}`}>
+                                 {msg.from}
+                               </p>
+                               <span className="text-[10px] text-neutral-400 whitespace-nowrap">{msg.date}</span>
+                            </div>
+                            <p className={`text-xs truncate ${msg.unread ? 'text-neutral-700' : 'text-neutral-400'}`}>
+                               {msg.subject}
+                            </p>
                          </div>
-                         <Button variant="ghost" className="h-8 w-8 p-0 rounded-full"><Eye size={16}/></Button>
+                         
+                         <ChevronRight size={16} className="text-neutral-300 self-center" />
                       </div>
                    ))}
+                   
+                   {/* Footer Widget */}
+                   <div className="p-3 bg-neutral-50 text-center border-t border-neutral-100">
+                      <button className="text-xs font-bold text-primary flex items-center justify-center gap-1 w-full">
+                         <Mail size={12} /> Vai alla Inbox
+                      </button>
+                   </div>
                  </div>
               </div>
+
             </div>
 
           </motion.div>
