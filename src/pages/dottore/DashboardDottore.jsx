@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, FileText, Clock, CheckCircle, 
-  AlertCircle, Calendar, Save, Eye
+  AlertCircle, Calendar, Save, Eye, Check
 } from 'lucide-react';
 
 import Card from '../../components/ui/Card'; 
@@ -11,7 +11,81 @@ import Button from '../../components/ui/Button';
 // IMPORT COMPONENTE WIZARD RIUTILIZZABILE
 import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
-// --- SOTTO-COMPONENTE: PREVENTIVI (Rimane qui per ora) ---
+// --- DEFINIZIONE DEGLI STEP ---
+const WIZARD_STEPS = [
+  { id: 1, label: "Paziente" },
+  { id: 2, label: "Lavorazione" },
+  { id: 3, label: "File" }, // Corretto
+  { id: 4, label: "Riepilogo" }
+];
+
+// --- COMPONENTE INDICATORE (Stile Filling + Label, Allineato a Destra) ---
+const StepIndicatorRight = ({ currentStep }) => {
+  // Calcolo percentuale
+  const progressPercentage = ((currentStep - 1) / (WIZARD_STEPS.length - 1)) * 100;
+
+  return (
+    <div className="relative w-[320px] h-12 flex items-center"> 
+      
+      {/* 1. BARRA DI SFONDO (Grigia Sottile) */}
+      <div className="absolute top-1/2 left-0 w-full h-[2px] bg-neutral-100 -translate-y-1/2 rounded-full z-0" />
+
+      {/* 2. BARRA DI PROGRESSO (Blu Animata) */}
+      <motion.div 
+        className="absolute top-1/2 left-0 h-[2px] bg-primary -translate-y-1/2 rounded-full z-0 origin-left"
+        initial={{ width: 0 }}
+        animate={{ width: `${progressPercentage}%` }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+      />
+
+      {/* 3. CERCHI E LABEL */}
+      <div className="relative z-10 flex justify-between w-full">
+        {WIZARD_STEPS.map((step) => {
+          const isCompleted = step.id < currentStep;
+          const isActive = step.id === currentStep;
+
+          return (
+            <div key={step.id} className="flex flex-col items-center relative">
+              {/* Cerchio */}
+              <motion.div 
+                initial={false}
+                animate={{
+                  backgroundColor: isActive || isCompleted ? '#2563EB' : '#FFFFFF',
+                  borderColor: isActive || isCompleted ? '#2563EB' : '#E5E5E5',
+                  scale: isActive ? 1.1 : 1
+                }}
+                className={`
+                  w-6 h-6 rounded-full border flex items-center justify-center 
+                  transition-colors duration-300 z-20
+                  ${!isActive && !isCompleted ? 'text-neutral-300' : 'text-white shadow-md'}
+                `}
+              >
+                {isCompleted ? (
+                  <Check size={12} strokeWidth={3} />
+                ) : (
+                  <span className="text-[10px] font-bold">{step.id}</span>
+                )}
+              </motion.div>
+
+              {/* LABEL (Posizionata sotto in modo assoluto per non rompere il layout) */}
+              <motion.span 
+                animate={{ 
+                  color: isActive ? '#1E293B' : '#94A3B8', 
+                  fontWeight: isActive ? 600 : 400
+                }}
+                className="absolute top-8 text-[10px] uppercase tracking-wide whitespace-nowrap"
+              >
+                {step.label}
+              </motion.span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// --- SOTTO-COMPONENTE: PREVENTIVI (Invariato) ---
 const PreventiviDaFirmare = () => {
   const [showOtp, setShowOtp] = useState(null);
 
@@ -60,40 +134,68 @@ const PreventiviDaFirmare = () => {
 // --- COMPONENTE PRINCIPALE DASHBOARD ---
 export default function DashboardDottore() {
   const [view, setView] = useState('dashboard');
+  const [wizardStep, setWizardStep] = useState(1);
+
+  const handleBackToDashboard = () => {
+    setView('dashboard');
+    setWizardStep(1); 
+  };
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       
       {/* HEADER PRINCIPALE */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4 min-h-[60px]">
+        
+        {/* TITOLO (SINISTRA) - Sempre visibile, cambia solo il testo */}
         <div>
-          <h1 className="text-3xl font-bold text-neutral-800">Studio Odontoiatrico Albanese</h1>
-          <p className="text-neutral-500">Gestione prescrizioni e avanzamento lavori</p>
+          <h1 className="text-3xl font-bold text-neutral-800">
+            {view === 'new-request' ? 'Nuova Prescrizione' : 'Studio Odontoiatrico Albanese'}
+          </h1>
+          <p className="text-neutral-500">
+            {view === 'new-request' ? 'Compila i dettagli della lavorazione' : 'Gestione prescrizioni e avanzamento lavori'}
+          </p>
         </div>
         
-        <div className="flex gap-3">
-           <Button 
-             variant={view === 'quotes' ? 'primary' : 'secondary'} 
-             onClick={() => setView('quotes')}
-             className="relative"
-           >
-             <FileText size={18} /> Preventivi
-             <span className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-[10px] flex items-center justify-center rounded-full">1</span>
-           </Button>
-           <Button 
-             variant="gradient" 
-             onClick={() => setView('new-request')}
-             className="shadow-lg hover:shadow-xl"
-           >
-             <Plus size={18} /> Nuova Lavorazione
-           </Button>
+        {/* ZONA ACTION (DESTRA) */}
+        <div className="flex gap-3 items-center">
+           
+           {/* Se siamo in 'new-request', mostra lo STEPPER a DESTRA */}
+           {view === 'new-request' ? (
+             <motion.div 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }}
+                className="mr-24" /* <--- MODIFICA QUI: Aggiunto margine destro abbondante per spostarlo a sinistra */
+             >
+                <StepIndicatorRight currentStep={wizardStep} />
+             </motion.div>
+           ) : (
+             // Altrimenti mostra i bottoni normali
+             <>
+               <Button 
+                 variant={view === 'quotes' ? 'primary' : 'secondary'} 
+                 onClick={() => setView('quotes')}
+                 className="relative"
+               >
+                 <FileText size={18} /> Preventivi
+                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-[10px] flex items-center justify-center rounded-full">1</span>
+               </Button>
+               <Button 
+                 variant="gradient" 
+                 onClick={() => setView('new-request')}
+                 className="shadow-lg hover:shadow-xl"
+               >
+                 <Plus size={18} /> Nuova Lavorazione
+               </Button>
+             </>
+           )}
         </div>
       </div>
 
       {/* CONTENUTO DINAMICO */}
       <AnimatePresence mode="wait">
         
-        {/* VISTA 1: NUOVA RICHIESTA (USO DEL NUOVO COMPONENTE) */}
+        {/* VISTA 1: NUOVA RICHIESTA */}
         {view === 'new-request' && (
           <motion.div 
             key="new-req"
@@ -101,12 +203,12 @@ export default function DashboardDottore() {
             className="bg-white rounded-3xl p-8 shadow-xl border border-neutral-100"
           >
             <NewRequestWizard 
-                onCancel={() => setView('dashboard')} 
+                onCancel={handleBackToDashboard} 
+                onStepChange={(step) => setWizardStep(step)} 
                 onSubmit={(data) => {
-                    // Qui gestiresti i dati ricevuti
                     console.log("Dati ricevuti dal Wizard:", data);
                     alert("Richiesta creata con successo!");
-                    setView('dashboard');
+                    handleBackToDashboard();
                 }} 
             />
           </motion.div>
@@ -115,7 +217,7 @@ export default function DashboardDottore() {
         {/* VISTA 2: LISTA PREVENTIVI */}
         {view === 'quotes' && (
           <motion.div key="quotes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <Button variant="ghost" onClick={() => setView('dashboard')} className="mb-4">← Torna alla Dashboard</Button>
+             <Button variant="ghost" onClick={handleBackToDashboard} className="mb-4">← Torna alla Dashboard</Button>
              <PreventiviDaFirmare />
           </motion.div>
         )}

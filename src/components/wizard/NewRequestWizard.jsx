@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// AGGIUNTO: useEffect nell'import
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
 
@@ -8,12 +9,23 @@ import StepElements from './StepElements';
 import StepFiles from './StepFiles';
 import StepSummary from './StepSummary';
 
-export default function NewRequestWizard({ onCancel, onSubmit }) {
+// AGGIUNTO: onStepChange nelle props
+export default function NewRequestWizard({ onCancel, onSubmit, onStepChange }) {
   const [step, setStep] = useState(1);
   const user = useAuthStore((state) => state.user);
   
   const isAdmin = user?.role === 'admin';
   const isDoctor = user?.role === 'dottore';
+
+  // --- NUOVO: Sincronizzazione Step con la Dashboard ---
+  useEffect(() => {
+    // Se la dashboard ci ha passato la funzione, la chiamiamo
+    if (onStepChange) {
+      onStepChange(step);
+    }
+    // Opzionale: Scrolla in alto quando si cambia step per una UX migliore
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step, onStepChange]);
 
   // Stato Dati Anagrafici
   const [formData, setFormData] = useState({
@@ -36,7 +48,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
   // Stato Date
   const [dates, setDates] = useState({ delivery: '', tryIn1: '', tryIn2: '', tryIn3: '' });
 
-  // --- NUOVI STATI PER FILE E PARAMETRI IMPRONTA ---
+  // Stato File e Parametri Impronta
   const [files, setFiles] = useState([]); 
   const [photos, setPhotos] = useState([]); 
   const [impressionParams, setImpressionParams] = useState({
@@ -52,14 +64,12 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
     
     // 1. Costruiamo l'oggetto completo
     const fullRequestData = {
-      id: Date.now(), // ID univoco
+      id: Date.now(),
       ...formData,
       technicalInfo: technicalInfo, 
       elements: configuredElements,
       dates: dates,
       impressionParams: impressionParams,
-      // Nota: i file reali non possono essere salvati in LocalStorage (troppo grandi).
-      // Salviamo solo i metadati per la demo.
       filesMetadata: files.map(f => ({ name: f.name, size: f.size })),
       photosMetadata: photos.map(f => ({ name: f.name, size: f.size })),
       createdBy: user.id,
@@ -69,7 +79,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
       timestamp: new Date().toISOString()
     };
 
-    // 2. Creiamo il messaggio per la Inbox Admin (Simulazione Backend)
+    // 2. Creiamo il messaggio per la Inbox Admin (Simulazione)
     const adminMessage = {
       id: fullRequestData.id,
       from: `${formData.nomeDottore}`,
@@ -77,7 +87,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
       date: new Date().toISOString(),
       read: false,
       preview: `Paziente: ${formData.cognome} • ${technicalInfo.material} • ${configuredElements.length} elementi`,
-      fullData: fullRequestData, // Payload completo
+      fullData: fullRequestData,
       doctorInfo: {
         name: user.nome,
         surname: user.cognome,
@@ -85,7 +95,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
       }
     };
 
-    // 3. Salvataggio in LocalStorage (Inbox Admin)
+    // 3. Salvataggio in LocalStorage
     const existingInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
     const updatedInbox = [adminMessage, ...existingInbox];
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updatedInbox));
@@ -97,12 +107,12 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
 
   return (
     <div className="space-y-6">
-      {/* HEADER WIZARD... */}
+      
+      {/* HEADER RIMOSSO QUI: Ora è gestito dalla Dashboard in alto a destra */}
       
       {/* STEP CONTENT */}
       <AnimatePresence mode="wait">
         {step === 1 && (
-            // ... StepPatient ...
             <StepPatient 
              key="step1" 
              formData={formData} 
@@ -113,7 +123,6 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
         )}
         
         {step === 2 && (
-            // ... StepElements ...
             <StepElements 
              key="step2"
              configuredElements={configuredElements} 
@@ -129,7 +138,6 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
         )}
 
         {step === 3 && (
-            // ... StepFiles ...
            <StepFiles 
              key="step3" 
              files={files} setFiles={setFiles}
@@ -148,7 +156,7 @@ export default function NewRequestWizard({ onCancel, onSubmit }) {
              technicalInfo={technicalInfo} 
              dates={dates}
              files={files}
-             photos={photos} // <--- ECCO LA MODIFICA FONDAMENTALE
+             photos={photos}
              impressionParams={impressionParams}
              onBack={back}
              onSubmit={handleFinalSubmit}
