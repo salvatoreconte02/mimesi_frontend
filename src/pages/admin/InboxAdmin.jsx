@@ -16,7 +16,24 @@ export default function InboxAdmin() {
     const loadMessages = () => {
        const stored = localStorage.getItem('mimesi_admin_inbox');
        if (stored) {
-         setMessages(JSON.parse(stored));
+         const parsedMsgs = JSON.parse(stored);
+         setMessages(parsedMsgs);
+
+         // -- NUOVO: CONTROLLO ID MESSAGGIO DALLA DASHBOARD --
+         const targetId = sessionStorage.getItem('mimesi_msg_id');
+         if (targetId) {
+             const found = parsedMsgs.find(m => String(m.id) === String(targetId));
+             if (found) {
+                 setSelectedMsg(found);
+                 // Se non letto, segna come letto
+                 if (!found.read) {
+                     const updated = parsedMsgs.map(m => m.id === found.id ? { ...m, read: true } : m);
+                     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
+                     setMessages(updated);
+                 }
+             }
+             sessionStorage.removeItem('mimesi_msg_id');
+         }
        }
     };
     loadMessages();
@@ -45,7 +62,6 @@ export default function InboxAdmin() {
     }
   };
 
-  // Quando l'admin clicca "Vai alla Lavorazione"
   const handleOpenJob = () => {
       alert("Vai nella sezione 'Lavorazioni' per validare questa richiesta (troverai il badge 'DA VALIDARE').");
   };
@@ -140,7 +156,6 @@ export default function InboxAdmin() {
                 <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
                    <p className="mb-4">{selectedMsg.preview}</p>
                    
-                   {/* Se è una richiesta, mostriamo anteprima della scheda - PULITA */}
                    {selectedMsg.type === 'request' && selectedMsg.fullData && (
                      <div className="mt-4">
                         <StepSummary 
@@ -151,7 +166,7 @@ export default function InboxAdmin() {
                            files={selectedMsg.fullData.filesMetadata || []}
                            photos={selectedMsg.fullData.photosMetadata || []}
                            impressionParams={selectedMsg.fullData.impressionParams}
-                           readOnly={true} // Nasconde azioni
+                           readOnly={true} 
                         />
                      </div>
                    )}

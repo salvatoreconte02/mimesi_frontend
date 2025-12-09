@@ -11,9 +11,9 @@ export default function DashboardAdmin({ setPage }) {
   const user = useAuthStore((state) => state.user);
   
   const [stats, setStats] = useState({
-    pending: 0,    // Da Valutare (in_evaluation + pending)
-    working: 0,    // In Lavorazione
-    warning: 0,    // In Prova
+    pending: 0,
+    working: 0,
+    warning: 0,
     completed: 0
   });
   const [recentJobs, setRecentJobs] = useState([]);
@@ -35,9 +35,17 @@ export default function DashboardAdmin({ setPage }) {
 
     // 2. Carica Messaggi Inbox Admin
     const inbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
-    setRecentMessages(inbox.slice(0, 4)); // Mostra ultimi 4
+    setRecentMessages(inbox.slice(0, 4)); 
 
   }, []);
+
+  // --- FUNZIONE DI NAVIGAZIONE SMART ---
+  const navigateTo = (page, paramKey, paramValue) => {
+      if (paramKey && paramValue) {
+          sessionStorage.setItem(paramKey, paramValue);
+      }
+      setPage(page);
+  };
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto min-h-screen space-y-8 bg-neutral-50">
@@ -54,13 +62,13 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* STATISTICHE (LINK FUNZIONANTI A LAVORAZIONI) */}
+      {/* STATISTICHE (LINK FILTRATI A LAVORAZIONI) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         
         {/* CARD 1: DA VALUTARE */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'da_valutare')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-blue-300 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -80,7 +88,7 @@ export default function DashboardAdmin({ setPage }) {
         {/* CARD 2: IN LAVORAZIONE */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'attivi')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-primary/30 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -95,7 +103,7 @@ export default function DashboardAdmin({ setPage }) {
         {/* CARD 3: IN PROVA */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'in_prova')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-orange-300 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -110,7 +118,7 @@ export default function DashboardAdmin({ setPage }) {
         {/* CARD 4: COMPLETATI */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'completati')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-green-300 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -133,7 +141,7 @@ export default function DashboardAdmin({ setPage }) {
             <Card className="!p-0 overflow-hidden">
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                     <h3 className="font-bold text-lg text-neutral-800">Flusso di Lavoro Recente</h3>
-                    <button onClick={() => setPage('lavorazioni')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+                    <button onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
                         Gestisci tutte <ChevronRight size={16} />
                     </button>
                 </div>
@@ -141,7 +149,10 @@ export default function DashboardAdmin({ setPage }) {
                     {recentJobs.length > 0 ? (
                         <div className="space-y-3">
                             {recentJobs.map((job) => (
-                                <div key={job.id} className="flex items-center justify-between p-4 hover:bg-neutral-50 rounded-xl border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" onClick={() => setPage('lavorazioni')}>
+                                <div key={job.id} 
+                                     className="flex items-center justify-between p-4 hover:bg-neutral-50 rounded-xl border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" 
+                                     onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')}
+                                >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs
                                             ${job.stato === 'working' ? 'bg-primary/10 text-primary' : 
@@ -238,7 +249,11 @@ export default function DashboardAdmin({ setPage }) {
                     {recentMessages.length > 0 ? (
                         <div className="space-y-1">
                             {recentMessages.map((msg) => (
-                                <div key={msg.id} className="p-3 hover:bg-neutral-50 rounded-xl cursor-pointer transition-colors" onClick={() => setPage('inbox')}>
+                                <div 
+                                    key={msg.id} 
+                                    className="p-3 hover:bg-neutral-50 rounded-xl cursor-pointer transition-colors" 
+                                    onClick={() => navigateTo('inbox', 'mimesi_msg_id', msg.id)}
+                                >
                                     <div className="flex justify-between items-start mb-1">
                                         <span className={`text-xs font-bold ${!msg.read ? 'text-primary' : 'text-neutral-600'}`}>
                                             {msg.from}

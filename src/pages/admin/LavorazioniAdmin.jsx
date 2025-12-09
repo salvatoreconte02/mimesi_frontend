@@ -14,8 +14,6 @@ export default function LavorazioniAdmin() {
   const [lavorazioni, setLavorazioni] = useState([]);
   
   // STATI PER IL WIZARD
-  // editingJob: Se popolato, apre il wizard in modalità 'admin' (validazione)
-  // isCreating: Se true, apre il wizard in modalità 'create' (nuova lavorazione interna)
   const [editingJob, setEditingJob] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -28,6 +26,14 @@ export default function LavorazioniAdmin() {
       }
     };
     loadData();
+
+    // -- NUOVO: CONTROLLO FILTRO DALLA DASHBOARD --
+    const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
+    if (preferredFilter) {
+        setFilter(preferredFilter);
+        sessionStorage.removeItem('mimesi_filter_pref'); // Pulisci dopo l'uso
+    }
+
     // Refresh automatico
     const interval = setInterval(loadData, 2000);
     return () => clearInterval(interval);
@@ -45,7 +51,7 @@ export default function LavorazioniAdmin() {
           : 'Nuova Lavorazione Interna',
         dottore: data.nomeDottore ? `Dr. ${data.nomeDottore} ${data.cognomeDottore}` : 'Interno',
         data: new Date().toLocaleDateString(),
-        stato: 'working', // Va direttamente in lavorazione perché creata da admin
+        stato: 'working',
         statusLabel: 'In Lavorazione',
         progress: 10,
         fullData: data 
@@ -121,7 +127,6 @@ export default function LavorazioniAdmin() {
   };
 
   const openValidation = (job) => {
-     // Solo se è in valutazione o attesa firma si apre la validazione, altrimenti è solo visualizzazione (per ora no-op)
      if(job.stato === 'in_evaluation' || job.stato === 'pending') {
          setEditingJob(job.fullData || job);
      }
@@ -175,7 +180,7 @@ export default function LavorazioniAdmin() {
                 <div className="bg-white/50 rounded-3xl">
                      <NewRequestWizard 
                         mode={isCreating ? 'create' : 'admin'}
-                        initialData={editingJob} // Sarà null se isCreating, popolato se editingJob
+                        initialData={editingJob} 
                         onCancel={() => { setIsCreating(false); setEditingJob(null); }}
                         onSubmit={isCreating ? handleCreateSubmit : handleValidationSubmit}
                      />
