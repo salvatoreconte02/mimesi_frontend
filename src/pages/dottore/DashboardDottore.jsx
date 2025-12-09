@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Activity, FileSignature, Clock, ChevronRight, 
-  Calendar, ArrowUpRight, MessageSquare 
+  MessageSquare 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import useAuthStore from '../../store/authStore';
@@ -40,6 +40,14 @@ export default function DashboardDottore({ setPage }) {
 
   }, [user]);
 
+  // --- FUNZIONE DI NAVIGAZIONE SMART ---
+  const navigateTo = (page, paramKey, paramValue) => {
+      if (paramKey && paramValue) {
+          sessionStorage.setItem(paramKey, paramValue);
+      }
+      setPage(page);
+  };
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen space-y-8">
       
@@ -61,7 +69,7 @@ export default function DashboardDottore({ setPage }) {
         {/* CARD 1: IN LAVORAZIONE */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'attivi')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-primary/30 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -79,7 +87,7 @@ export default function DashboardDottore({ setPage }) {
         {/* CARD 2: DA FIRMARE */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'da_firmare')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-orange-300 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -99,7 +107,7 @@ export default function DashboardDottore({ setPage }) {
         {/* CARD 3: IN VALUTAZIONE */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setPage('lavorazioni')}
+          onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'in_valutazione')}
           className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-blue-300 group"
         >
           <div className="flex justify-between items-start mb-4">
@@ -123,7 +131,7 @@ export default function DashboardDottore({ setPage }) {
             <Card className="!p-0 overflow-hidden">
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                     <h3 className="font-bold text-lg text-neutral-800">Lavorazioni Recenti</h3>
-                    <button onClick={() => setPage('lavorazioni')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+                    <button onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
                         Vedi tutti <ChevronRight size={16} />
                     </button>
                 </div>
@@ -131,13 +139,17 @@ export default function DashboardDottore({ setPage }) {
                     {recentJobs.length > 0 ? (
                         <div className="space-y-3">
                             {recentJobs.map((job) => (
-                                <div key={job.id} className="flex items-center justify-between p-4 hover:bg-neutral-50 rounded-xl border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" onClick={() => setPage('lavorazioni')}>
+                                <div 
+                                    key={job.id} 
+                                    className="flex items-center justify-between p-4 hover:bg-neutral-50 rounded-xl border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" 
+                                    onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')}
+                                >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs
                                             ${job.stato === 'working' ? 'bg-primary/10 text-primary' : 
                                               job.stato === 'pending' ? 'bg-orange-100 text-orange-600' : 
                                               job.stato === 'in_evaluation' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                                            {job.paziente.charAt(0)}
+                                            {job.paziente ? job.paziente.charAt(0) : '?'}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-neutral-800 text-sm group-hover:text-primary transition-colors">{job.paziente}</h4>
@@ -180,7 +192,11 @@ export default function DashboardDottore({ setPage }) {
                     {recentMessages.length > 0 ? (
                         <div className="space-y-1">
                             {recentMessages.map((msg) => (
-                                <div key={msg.id} className="p-3 hover:bg-neutral-50 rounded-xl cursor-pointer transition-colors" onClick={() => setPage('inbox')}>
+                                <div 
+                                    key={msg.id} 
+                                    className="p-3 hover:bg-neutral-50 rounded-xl cursor-pointer transition-colors" 
+                                    onClick={() => navigateTo('inbox', 'mimesi_msg_id', msg.id)}
+                                >
                                     <div className="flex justify-between items-start mb-1">
                                         <span className={`text-xs font-bold ${!msg.read ? 'text-primary' : 'text-neutral-600'}`}>
                                             {msg.from}
@@ -192,7 +208,7 @@ export default function DashboardDottore({ setPage }) {
                                     </p>
                                     
                                     <div className="flex gap-2 mt-2">
-                                        {/* LOGICA BADGE: Se è order_summary mostra "Riepilogo" */}
+                                        {/* LOGICA BADGE */}
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold tracking-wider
                                             ${msg.type === 'request_signature' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
                                               msg.type === 'order_summary' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
@@ -212,7 +228,6 @@ export default function DashboardDottore({ setPage }) {
                         </div>
                     )}
                 </div>
-                {/* Rimosso pulsante "Vai alla inbox" come richiesto */}
             </Card>
         </div>
 

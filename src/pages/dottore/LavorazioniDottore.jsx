@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, 
-  Clock, AlertCircle, ChevronRight, Calendar, Plus 
+  Clock, AlertCircle, ChevronRight, Calendar, Plus, ArrowLeft
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -15,7 +15,7 @@ export default function LavorazioniDottore() {
   const [search, setSearch] = useState('');
   const [lavorazioni, setLavorazioni] = useState([]);
   
-  // Toggle per mostrare il Wizard (false = Lista, true = Wizard)
+  // Toggle per mostrare il Wizard (false = Lista, true = Wizard Full Page)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Carica lavorazioni
@@ -33,6 +33,14 @@ export default function LavorazioniDottore() {
       }
     };
     loadData();
+
+    // -- CONTROLLO FILTRO DALLA DASHBOARD --
+    const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
+    if (preferredFilter) {
+        setFilter(preferredFilter);
+        sessionStorage.removeItem('mimesi_filter_pref');
+    }
+
     const interval = setInterval(loadData, 2000);
     return () => clearInterval(interval);
   }, [user]);
@@ -93,6 +101,7 @@ export default function LavorazioniDottore() {
     alert('Richiesta inviata con successo! Troverai il riepilogo nella tua Inbox.');
   };
 
+  // Logica filtro + Fix Crash
   const filteredList = lavorazioni.filter(item => {
     const pazienteSafe = String(item.paziente || '').toLowerCase();
     const idSafe = String(item.id || '').toLowerCase();
@@ -108,15 +117,31 @@ export default function LavorazioniDottore() {
     return matchesSearch;
   });
 
-  // RENDERING PRINCIPALE: O LISTA O WIZARD
+  // RENDERING PRINCIPALE: O LISTA O WIZARD (FULL PAGE)
   if (isWizardOpen) {
     return (
       <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-             <NewRequestWizard 
-                onCancel={() => setIsWizardOpen(false)}
-                onSubmit={handleNewRequestSubmit}
-             />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+             {/* Header Wizard Navigazione */}
+             <div className="flex items-center gap-4 mb-6">
+                <button 
+                    onClick={() => setIsWizardOpen(false)}
+                    className="p-2 bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50 text-neutral-500 transition-colors"
+                >
+                    <ArrowLeft size={20} />
+                </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-neutral-800">Nuova Prescrizione</h1>
+                    <p className="text-neutral-500 text-sm">Compila i dati per inviare una nuova lavorazione</p>
+                </div>
+             </div>
+
+             <div className="bg-white/50 rounded-3xl">
+                <NewRequestWizard 
+                    onCancel={() => setIsWizardOpen(false)}
+                    onSubmit={handleNewRequestSubmit}
+                />
+             </div>
           </motion.div>
       </div>
     );

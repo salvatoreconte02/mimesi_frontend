@@ -201,9 +201,6 @@ export default function LavorazioniAdmin() {
           <p className="text-neutral-500">Monitora e valida le prescrizioni del laboratorio</p>
         </div>
         <div className="flex gap-3">
-          <span className="px-3 py-2 bg-white border rounded-lg text-sm flex items-center">
-            <span className="font-bold text-primary mr-2">{lavorazioni.length}</span> Totali
-          </span>
           <Button onClick={() => setIsCreating(true)}>
              <Plus size={20} className="mr-2" /> Nuova Lavorazione
           </Button>

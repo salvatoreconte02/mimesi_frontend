@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Search, Mail, Paperclip, Star, FileText, CheckCircle, Download, Clock 
+  Search, Mail, Paperclip, Star, FileText, CheckCircle, Download
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -15,22 +15,40 @@ export default function InboxDottore() {
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
 
-  // Carica messaggi dal localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('mimesi_doctor_inbox');
-    if (stored) {
-      setMessages(JSON.parse(stored));
-    }
+    const loadMessages = () => {
+       const stored = localStorage.getItem('mimesi_doctor_inbox');
+       if (stored) {
+         const parsedMsgs = JSON.parse(stored);
+         setMessages(parsedMsgs);
+
+         // -- CONTROLLO ID MESSAGGIO DALLA DASHBOARD --
+         const targetId = sessionStorage.getItem('mimesi_msg_id');
+         if (targetId) {
+             const found = parsedMsgs.find(m => String(m.id) === String(targetId));
+             if (found) {
+                 setSelectedMsg(found);
+                 if (!found.read) {
+                     const updated = parsedMsgs.map(m => m.id === found.id ? { ...m, read: true } : m);
+                     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
+                     setMessages(updated);
+                 }
+             }
+             sessionStorage.removeItem('mimesi_msg_id');
+         }
+       }
+    };
+    loadMessages();
+    const interval = setInterval(loadMessages, 2000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Segna come letto
   const markAsRead = (msgId) => {
     const updated = messages.map(m => m.id === msgId ? { ...m, read: true, unread: false } : m);
     setMessages(updated);
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
   };
 
-  // Segna tutti come letti
   const markAllAsRead = () => {
     const updated = messages.map(m => ({ ...m, read: true, unread: false }));
     setMessages(updated);
@@ -46,7 +64,6 @@ export default function InboxDottore() {
     }
   };
 
-  // Firma digitale
   const handleRequestOtp = () => {
     alert('Codice OTP inviato via email!');
     setShowOtp(true);
@@ -58,7 +75,6 @@ export default function InboxDottore() {
       return;
     }
 
-    // Aggiorna lo stato della lavorazione
     const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const updated = allLavorazioni.map(lav => {
       if (lav.id === selectedMsg.linkedJobId || lav.id === selectedMsg.fullData?.id) {
@@ -73,7 +89,6 @@ export default function InboxDottore() {
     });
     localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updated));
 
-    // Rimuovi o aggiorna messaggio nell'inbox (opzionale: lo teniamo come storico)
     alert('✅ Documento firmato digitalmente! La lavorazione è stata avviata.');
     setSelectedMsg(null);
     setShowOtp(false);
@@ -88,7 +103,6 @@ export default function InboxDottore() {
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
-      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Messaggi & Preventivi</h1>
@@ -127,7 +141,7 @@ export default function InboxDottore() {
                    <div className="mt-2 flex gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
                         ${msg.type === 'request_signature' ? 'bg-orange-100 text-orange-700' : 
-                          msg.type === 'order_summary' ? 'bg-blue-100 text-blue-700' : 
+                          msg.type === 'order_summary' ? 'bg-indigo-100 text-indigo-700' : 
                           'bg-gray-100 text-gray-600'}`}>
                         {msg.type === 'request_signature' ? 'Da Firmare' : 
                          msg.type === 'order_summary' ? 'Riepilogo' : 'Info'}
@@ -151,7 +165,6 @@ export default function InboxDottore() {
                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                className="flex flex-col h-full"
              >
-                {/* Header Messaggio */}
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-start">
                    <div>
                       <h2 className="text-xl font-bold text-neutral-800 mb-2">{selectedMsg.subject}</h2>
@@ -171,11 +184,10 @@ export default function InboxDottore() {
                    </div>
                 </div>
 
-                {/* Corpo Messaggio */}
                 <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
                    <p className="mb-4">{selectedMsg.preview}</p>
                    
-                   {/* CASO 1: RIEPILOGO ORDINE (SOLA LETTURA, SENZA CONTAINER BRUTTO) */}
+                   {/* CASO 1: RIEPILOGO ORDINE */}
                    {selectedMsg.type === 'order_summary' && selectedMsg.fullData && (
                      <div className="mt-4">
                         <StepSummary 
@@ -186,12 +198,12 @@ export default function InboxDottore() {
                            files={selectedMsg.fullData.filesMetadata || []} 
                            photos={selectedMsg.fullData.photosMetadata || []} 
                            impressionParams={selectedMsg.fullData.impressionParams}
-                           readOnly={true} // Nasconde bottoni
+                           readOnly={true} 
                         />
                      </div>
                    )}
 
-                   {/* CASO 2: RICHIESTA FIRMA (CON PREVENTIVO) */}
+                   {/* CASO 2: RICHIESTA FIRMA */}
                    {selectedMsg.type === 'request_signature' && selectedMsg.quoteData && (
                      <div className="mt-6 space-y-4">
                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
@@ -231,7 +243,6 @@ export default function InboxDottore() {
                    )}
                 </div>
 
-                {/* Footer Azioni */}
                 <div className="p-4 border-t border-neutral-100 bg-neutral-50">
                    {selectedMsg.type === 'request_signature' && !showOtp ? (
                      <div className="flex gap-3 justify-end">
