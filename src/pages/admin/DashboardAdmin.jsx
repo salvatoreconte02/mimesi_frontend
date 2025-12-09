@@ -71,7 +71,7 @@ const AdminStepIndicator = ({ currentStep }) => {
   );
 };
 
-export default function DashboardAdmin() {
+export default function DashboardAdmin({ setPage: setPageProp }) {
   const [view, setView] = useState('dashboard');
   const [wizardStep, setWizardStep] = useState(1);
   const [inbox, setInbox] = useState([]);
@@ -218,7 +218,10 @@ export default function DashboardAdmin() {
             
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="flex items-center gap-4 bg-orange-50 border-orange-200">
+              <Card 
+                onClick={() => setPageProp('inbox')}
+                className="flex items-center gap-4 bg-orange-50 border-orange-200 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white">
                   <AlertCircle size={24} />
                 </div>
@@ -227,7 +230,10 @@ export default function DashboardAdmin() {
                   <h3 className="text-2xl font-bold text-orange-600">{daValutare}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-primary/5 border-primary/20">
+              <Card 
+                onClick={() => setPageProp('lavorazioni')}
+                className="flex items-center gap-4 bg-primary/5 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
                   <Clock size={24} />
                 </div>
@@ -236,7 +242,10 @@ export default function DashboardAdmin() {
                   <h3 className="text-2xl font-bold text-primary">{inLavorazione}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-warning/5 border-warning/20">
+              <Card 
+                onClick={() => setPageProp('lavorazioni')}
+                className="flex items-center gap-4 bg-warning/5 border-warning/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-warning flex items-center justify-center text-white">
                   <FileText size={24} />
                 </div>
@@ -245,7 +254,10 @@ export default function DashboardAdmin() {
                   <h3 className="text-2xl font-bold text-warning">{inProva}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-success/5 border-success/20">
+              <Card 
+                onClick={() => setPageProp('lavorazioni')}
+                className="flex items-center gap-4 bg-success/5 border-success/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center text-white">
                   <CheckCircle size={24} />
                 </div>
@@ -261,9 +273,21 @@ export default function DashboardAdmin() {
               
               {/* COL 1: Lavorazioni Recenti */}
               <div className="space-y-4">
-                <h3 className="font-bold text-neutral-800 text-lg">Lavorazioni Recenti</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-neutral-800 text-lg">Lavorazioni Recenti</h3>
+                  <button 
+                    onClick={() => setPageProp('lavorazioni')} 
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    Vedi tutte
+                  </button>
+                </div>
                 {lavorazioniRecenti.length > 0 ? lavorazioniRecenti.map(lav => (
-                  <Card key={lav.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+                  <Card 
+                    key={lav.id} 
+                    onClick={() => setPageProp('lavorazioni')}
+                    className="hover:border-primary/50 transition-colors cursor-pointer"
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{lav.id}</span>
@@ -292,13 +316,20 @@ export default function DashboardAdmin() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-neutral-800 text-lg">Richieste Recenti</h3>
-                  <button onClick={() => setView('inbox-detail')} className="text-xs text-primary font-medium hover:underline">
+                  <button 
+                    onClick={() => setPageProp('inbox')} 
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
                     Vedi tutte
                   </button>
                 </div>
                 <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-sm">
                   {messages.length > 0 ? messages.map((msg) => (
-                    <div key={msg.id} className="p-4 border-b last:border-0 hover:bg-neutral-50 flex gap-3 items-start cursor-pointer transition-colors">
+                    <div 
+                      key={msg.id} 
+                      onClick={() => setPageProp('inbox')}
+                      className="p-4 border-b last:border-0 hover:bg-neutral-50 flex gap-3 items-start cursor-pointer transition-colors"
+                    >
                       <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!msg.read ? 'bg-primary' : 'bg-transparent'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between mb-1">

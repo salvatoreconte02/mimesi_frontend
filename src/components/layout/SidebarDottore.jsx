@@ -48,7 +48,8 @@ export default function SidebarDottore({ setPage }) {
             <item.icon size={20} />
             <span className="font-medium">{item.label}</span>
             
-            {item.badge && item.badge > 0 && (
+            {/* CORREZIONE QUI: Controllo diretto > 0 */}
+            {item.badge > 0 && (
               <span className="absolute right-3 bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                 {item.badge}
               </span>

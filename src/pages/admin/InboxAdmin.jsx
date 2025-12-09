@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import RiepilogoScheda from '../admin/RiepilogoScheda';
 
 export default function InboxAdmin() {
   const [selectedMsg, setSelectedMsg] = useState(null);
@@ -129,37 +130,8 @@ export default function InboxAdmin() {
                    <br />
                    
                    {selectedMsg.type === 'request' && selectedMsg.fullData && (
-                     <div className="mt-6 space-y-4">
-                       <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-                         <h4 className="font-bold text-neutral-800 mb-2">Dettagli Prescrizione</h4>
-                         <div className="grid grid-cols-2 gap-3 text-xs">
-                           <div>
-                             <span className="text-neutral-400 block">Paziente</span>
-                             <span className="font-bold">{selectedMsg.fullData.cognome} {selectedMsg.fullData.nome}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Elementi</span>
-                             <span className="font-bold">{selectedMsg.fullData.elements?.length || 0}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Materiale</span>
-                             <span className="font-bold capitalize">{selectedMsg.fullData.technicalInfo?.material?.replace(/_/g, ' ')}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Colore</span>
-                             <span className="font-bold">{selectedMsg.fullData.technicalInfo?.color}</span>
-                           </div>
-                         </div>
-                       </div>
-
-                       <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-4">
-                          <FileText className="text-blue-600" size={24} />
-                          <div className="flex-1">
-                             <p className="text-sm font-bold text-blue-900">File Scansione Allegati</p>
-                             <p className="text-xs text-blue-600">{selectedMsg.fullData.filesMetadata?.length || 0} file 3D</p>
-                          </div>
-                          <Button className="text-xs px-3 py-1.5 h-auto">Visualizza</Button>
-                       </div>
+                     <div className="mt-6">
+                       <RiepilogoScheda data={selectedMsg.fullData} />
                      </div>
                    )}
                 </div>

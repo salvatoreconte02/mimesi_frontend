@@ -130,7 +130,7 @@ const QuotesToSign = ({ lavorazioni }) => {
 };
 
 // --- COMPONENTE PRINCIPALE DASHBOARD ---
-export default function DashboardDottore() {
+export default function DashboardDottore({ setPage }) {
   const user = useAuthStore(state => state.user);
   const [view, setView] = useState('dashboard');
   const [wizardStep, setWizardStep] = useState(1);
@@ -283,7 +283,10 @@ export default function DashboardDottore() {
             
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="flex items-center gap-4 bg-primary/5 border-primary/20">
+              <Card 
+                onClick={() => setPage('lavorazioni')}
+                className="flex items-center gap-4 bg-primary/5 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
                   <Clock size={24} />
                 </div>
@@ -292,7 +295,10 @@ export default function DashboardDottore() {
                   <h3 className="text-2xl font-bold text-primary">{inLavorazione}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-warning/5 border-warning/20">
+              <Card 
+                onClick={() => setPage('lavorazioni')}
+                className="flex items-center gap-4 bg-warning/5 border-warning/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-warning flex items-center justify-center text-white">
                   <AlertCircle size={24} />
                 </div>
@@ -301,7 +307,10 @@ export default function DashboardDottore() {
                   <h3 className="text-2xl font-bold text-warning">{inProva}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-orange-50 border-orange-200">
+              <Card 
+                onClick={() => setPage('inbox')}
+                className="flex items-center gap-4 bg-orange-50 border-orange-200 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white">
                   <FileText size={24} />
                 </div>
@@ -310,7 +319,10 @@ export default function DashboardDottore() {
                   <h3 className="text-2xl font-bold text-orange-600">{daFirmare}</h3>
                 </div>
               </Card>
-              <Card className="flex items-center gap-4 bg-success/5 border-success/20">
+              <Card 
+                onClick={() => setPage('lavorazioni')}
+                className="flex items-center gap-4 bg-success/5 border-success/20 cursor-pointer hover:shadow-lg transition-shadow"
+              >
                 <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center text-white">
                   <CheckCircle size={24} />
                 </div>
@@ -326,10 +338,22 @@ export default function DashboardDottore() {
               
               {/* COLONNA SX: LAVORAZIONI ATTIVE */}
               <div className="space-y-4">
-                <h3 className="font-bold text-neutral-800 text-lg">Lavorazioni Attive</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-neutral-800 text-lg">Lavorazioni Attive</h3>
+                  <button 
+                    onClick={() => setPage('lavorazioni')} 
+                    className="text-xs text-primary font-medium cursor-pointer hover:underline"
+                  >
+                    Vedi tutte
+                  </button>
+                </div>
                 
                 {lavorazioniAttive.length > 0 ? lavorazioniAttive.map((lav) => (
-                  <Card key={lav.id} className={`group hover:border-primary/50 transition-colors cursor-pointer ${lav.stato === 'warning' ? 'border-l-4 border-l-warning' : ''}`}>
+                  <Card 
+                    key={lav.id} 
+                    onClick={() => setPage('lavorazioni')}
+                    className={`group hover:border-primary/50 transition-colors cursor-pointer ${lav.stato === 'warning' ? 'border-l-4 border-l-warning' : ''}`}
+                  >
                      <div className="flex justify-between items-start mb-3">
                         <div>
                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{lav.id}</span>
@@ -370,12 +394,21 @@ export default function DashboardDottore() {
               <div className="space-y-4">
                  <div className="flex justify-between items-center">
                     <h3 className="font-bold text-neutral-800 text-lg">Messaggi Recenti</h3>
-                    <a href="#inbox" className="text-xs text-primary font-medium cursor-pointer hover:underline">Vedi tutti</a>
+                    <button 
+                      onClick={() => setPage('inbox')} 
+                      className="text-xs text-primary font-medium cursor-pointer hover:underline"
+                    >
+                      Vedi tutti
+                    </button>
                  </div>
                  
                  <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-sm">
                    {messages.length > 0 ? messages.map((msg) => (
-                      <div key={msg.id} className="p-4 border-b last:border-0 hover:bg-neutral-50 flex gap-3 items-start cursor-pointer transition-colors">
+                      <div 
+                        key={msg.id} 
+                        onClick={() => setPage('inbox')}
+                        className="p-4 border-b last:border-0 hover:bg-neutral-50 flex gap-3 items-start cursor-pointer transition-colors"
+                      >
                          <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!msg.read ? 'bg-primary' : 'bg-transparent'}`} />
                          
                          <div className="flex-1 min-w-0">
@@ -402,7 +435,10 @@ export default function DashboardDottore() {
                    )}
                    
                    <div className="p-3 bg-neutral-50 text-center border-t border-neutral-100">
-                      <button className="text-xs font-bold text-primary flex items-center justify-center gap-1 w-full">
+                      <button 
+                        onClick={() => setPage('inbox')}
+                        className="text-xs font-bold text-primary flex items-center justify-center gap-1 w-full hover:underline"
+                      >
                          <Mail size={12} /> Vai alla Inbox
                       </button>
                    </div>

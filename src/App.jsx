@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuthStore from './store/authStore';
 import SidebarDottore from './components/layout/SidebarDottore';
 import SidebarAdmin from './components/layout/SidebarAdmin';
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
+import { initializeMockData } from './mockData';
 
 // --- IMPORT PAGINE ---
 import DashboardDottore from './pages/dottore/DashboardDottore';
@@ -53,6 +54,11 @@ function App() {
   const { isAuthenticated, user } = useAuthStore();
   const [page, setPage] = useState('dashboard');
 
+  // Initialize mock data on first load
+  useEffect(() => {
+    initializeMockData();
+  }, []);
+
   if (!isAuthenticated) return <Login />;
 
   // LOGICA DI ROUTING CENTRALIZZATA
@@ -74,9 +80,9 @@ function App() {
     if (page === 'dashboard') {
         switch(user?.role) {
             case 'admin':
-                return <DashboardAdmin />;
+                return <DashboardAdmin setPage={setPage} />;
             case 'dottore':
-                return <DashboardDottore />;
+                return <DashboardDottore setPage={setPage} />;
             default:
                 return <DashboardGeneric />; // Fallback per Operatore
         }
