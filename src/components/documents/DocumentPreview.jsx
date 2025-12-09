@@ -24,7 +24,7 @@ export default function DocumentPreview({ data, quote }) {
                     <h4 className="flex items-center gap-2 text-xs font-bold text-primary uppercase border-b border-primary/10 pb-1"><User size={14}/> Anagrafica</h4>
                     <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-sm">
                         <div className="flex justify-between mb-2"><span className="text-neutral-500">Paziente</span><span className="font-bold">{data.cognome} {data.nome}</span></div>
-                        <div className="flex justify-between mb-2"><span className="text-neutral-500">Dottore</span><span className="font-bold">{data.nomeDottore}</span></div>
+                        <div className="flex justify-between mb-2"><span className="text-neutral-500">Dottore</span><span className="font-bold">Dr. {data.nomeDottore} {data.cognomeDottore}</span></div>
                         <div className="flex justify-between"><span className="text-neutral-500">Codice</span><span className="font-mono bg-white px-2 rounded border text-xs">{data.codicePaziente}</span></div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@ export default function DocumentPreview({ data, quote }) {
             </div>
             <div className="space-y-12 mt-8 flex-1">
                 <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 text-blue-900 leading-relaxed text-justify">
-                    Il sottoscritto <b>Dr. {data.nomeDottore}</b>, presa visione della scheda tecnica (pag. 1) e del preventivo economico (pag. 2), 
+                    Il sottoscritto <b>Dr. {data.nomeDottore} {data.cognomeDottore}</b>, presa visione della scheda tecnica (pag. 1) e del preventivo economico (pag. 2), 
                     accetta integralmente le specifiche e i costi. Si autorizza Mimesi Lab a procedere con la realizzazione del dispositivo.
                 </div>
                 <div className="grid grid-cols-2 gap-12 mt-12">

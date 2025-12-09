@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, FileText, Clock, CheckCircle, 
   AlertCircle, Calendar, Save, Eye, Check,
-  MessageSquare, ChevronRight, Mail // <--- Nuove icone importate
+  MessageSquare, ChevronRight, Mail 
 } from 'lucide-react';
 
 import Card from '../../components/ui/Card'; 
@@ -133,6 +133,34 @@ export default function DashboardDottore() {
     setWizardStep(1); 
   };
 
+  // --- NUOVA FUNZIONE DI SALVATAGGIO ---
+  const handleRequestSubmit = (data) => {
+    // 1. Creiamo il messaggio per l'Admin
+    const newRequestMsg = {
+        id: data.id, 
+        from: `Dr. ${data.nomeDottore} ${data.cognomeDottore}`,
+        subject: `Nuova Prescrizione: ${data.cognome} ${data.nome}`,
+        preview: `${data.elements.length} Elementi • ${data.technicalInfo.material}`,
+        date: new Date().toISOString(),
+        read: false,
+        type: 'request',
+        fullData: data // Passiamo tutti i dati
+    };
+
+    // 2. Recuperiamo la inbox Admin attuale
+    const currentAdminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+    
+    // 3. Aggiungiamo il messaggio in cima
+    const updatedInbox = [newRequestMsg, ...currentAdminInbox];
+    
+    // 4. Salviamo nel localStorage
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updatedInbox));
+
+    console.log("Richiesta inviata all'Admin:", newRequestMsg);
+    alert("Richiesta inviata con successo al Laboratorio!");
+    handleBackToDashboard();
+  };
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       
@@ -190,13 +218,10 @@ export default function DashboardDottore() {
             className="bg-white rounded-3xl p-8 shadow-xl border border-neutral-100"
           >
             <NewRequestWizard 
+                mode="create" 
                 onCancel={handleBackToDashboard} 
                 onStepChange={(step) => setWizardStep(step)} 
-                onSubmit={(data) => {
-                    console.log("Dati ricevuti dal Wizard:", data);
-                    alert("Richiesta creata con successo!");
-                    handleBackToDashboard();
-                }} 
+                onSubmit={handleRequestSubmit} // <--- Collegato qui
             />
           </motion.div>
         )}

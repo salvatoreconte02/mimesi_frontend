@@ -6,6 +6,22 @@ import Button from '../ui/Button';
 import FileRenderer from '../ui/FileRenderer';
 /* eslint-enable no-unused-vars */
 
+// ===== HELPER FUNCTION =====
+// Controlla se un file è un oggetto File/Blob reale o solo metadati
+// Usa duck-typing invece di instanceof per evitare errori di contesto
+const isRealFile = (file) => {
+  if (!file) return false;
+  
+  // Un File/Blob reale ha questi metodi/proprietà
+  // Un oggetto JSON di metadati non li ha
+  return (
+    typeof file.slice === 'function' && 
+    typeof file.size === 'number' && 
+    'type' in file &&
+    'lastModified' in file
+  );
+};
+
 export default function StepFiles({ 
   files, setFiles, 
   photos, setPhotos, 
@@ -98,44 +114,53 @@ export default function StepFiles({
           {/* LISTA FILE CARICATI */}
           {files.length > 0 && (
               <div className="grid grid-cols-1 gap-2 bg-neutral-50 p-3 rounded-2xl border border-neutral-200 max-h-[200px] overflow-y-auto custom-scrollbar">
-                  {files.map((file, i) => (
-                      <div key={`${file.name}-${file.size}-${i}`} className="flex items-center justify-between bg-white p-3 rounded-xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                  <Box size={20} />
+                  {files.map((file, i) => {
+                      const isReal = isRealFile(file);
+                      const fileName = isReal ? file.name : file.name;
+                      const fileSize = isReal ? file.size : (file.size || 0);
+                      const fileExt = fileName.split('.').pop();
+                      
+                      return (
+                          <div key={`${fileName}-${fileSize}-${i}`} className="flex items-center justify-between bg-white p-3 rounded-xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                      <Box size={20} />
+                                  </div>
+                                  <div className="min-w-0">
+                                      <p className="text-sm font-bold text-neutral-700 truncate">{fileName}</p>
+                                      <p className="text-[10px] text-neutral-400 uppercase font-mono">
+                                        {fileExt} • {(fileSize / 1024 / 1024).toFixed(2)} MB
+                                      </p>
+                                  </div>
                               </div>
-                              <div className="min-w-0">
-                                  <p className="text-sm font-bold text-neutral-700 truncate">{file.name}</p>
-                                  <p className="text-[10px] text-neutral-400 uppercase font-mono">
-                                    {file.name.split('.').pop()} • {(file.size / 1024 / 1024).toFixed(2)} MB
-                                  </p>
-                              </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                              {/* TASTO ANTEPRIMA 3D */}
-                              <button 
-                                type="button"
-                                onClick={() => setPreviewFile(file)}
-                                className="p-2 bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors flex items-center gap-2 group"
-                                title="Anteprima 3D"
-                              >
-                                  <Eye size={18} />
-                                  <span className="text-xs font-bold hidden group-hover:inline">Vedi 3D</span>
-                              </button>
+                              
+                              <div className="flex gap-2">
+                                  {/* TASTO ANTEPRIMA 3D - Solo se è un file reale */}
+                                  {isReal && (
+                                      <button 
+                                        type="button"
+                                        onClick={() => setPreviewFile(file)}
+                                        className="p-2 bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors flex items-center gap-2 group"
+                                        title="Anteprima 3D"
+                                      >
+                                          <Eye size={18} />
+                                          <span className="text-xs font-bold hidden group-hover:inline">Vedi 3D</span>
+                                      </button>
+                                  )}
 
-                              {/* TASTO RIMUOVI */}
-                              <button 
-                                type="button"
-                                onClick={() => removeFile(i)} 
-                                className="p-2 bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors"
-                                title="Rimuovi file"
-                              >
-                                  <X size={18} />
-                              </button>
+                                  {/* TASTO RIMUOVI */}
+                                  <button 
+                                    type="button"
+                                    onClick={() => removeFile(i)} 
+                                    className="p-2 bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors"
+                                    title="Rimuovi file"
+                                  >
+                                      <X size={18} />
+                                  </button>
+                              </div>
                           </div>
-                      </div>
-                  ))}
+                      );
+                  })}
               </div>
           )}
         </div>
@@ -206,22 +231,38 @@ export default function StepFiles({
               </div>
 
               <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-                  {photos.map((photo, i) => (
-                      <div key={`photo-${photo.name}-${i}`} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-neutral-200 shadow-sm shrink-0 group">
-                          <img 
-                              src={URL.createObjectURL(photo)} 
-                              alt={`preview-${i}`}
-                              className="w-full h-full object-cover"
-                          />
-                          <button 
-                              type="button"
-                              onClick={() => removePhoto(i)}
-                              className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-                          >
-                              <X size={12} />
-                          </button>
-                      </div>
-                  ))}
+                  {photos.map((photo, i) => {
+                      const isReal = isRealFile(photo);
+                      
+                      return (
+                          <div key={`photo-${photo.name || 'photo'}-${i}`} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-neutral-200 shadow-sm shrink-0 group">
+                              {/* SE È UN FILE REALE: mostra l'immagine vera */}
+                              {isReal ? (
+                                  <img 
+                                      src={URL.createObjectURL(photo)} 
+                                      alt={`preview-${i}`}
+                                      className="w-full h-full object-cover"
+                                  />
+                              ) : (
+                                  /* SE SONO METADATI: mostra un placeholder con icona */
+                                  <div className="w-full h-full bg-neutral-100 flex flex-col items-center justify-center">
+                                      <ImageIcon size={32} className="text-neutral-400 mb-1" />
+                                      <span className="text-[8px] text-neutral-400 font-mono px-1 text-center truncate w-full">
+                                          {photo.name}
+                                      </span>
+                                  </div>
+                              )}
+                              
+                              <button 
+                                  type="button"
+                                  onClick={() => removePhoto(i)}
+                                  className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                              >
+                                  <X size={12} />
+                              </button>
+                          </div>
+                      );
+                  })}
                   {photos.length === 0 && (
                       <div className="flex items-center text-xs text-neutral-400 italic px-2">
                           Nessuna foto allegata
@@ -242,9 +283,9 @@ export default function StepFiles({
         </div>
       </motion.div>
 
-      {/* MODALE ANTEPRIMA 3D */}
+      {/* MODALE ANTEPRIMA 3D - Solo se il file è reale */}
       <AnimatePresence>
-        {previewFile && (
+        {previewFile && isRealFile(previewFile) && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 

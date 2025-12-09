@@ -3,6 +3,17 @@ import { FileText, Send, User, Calendar, ShieldAlert, Layers, Paperclip, Activit
 import Button from '../ui/Button';
 import { GROUP_COLORS } from '../dental/VisualOdontogram';
 
+// Helper per distinguere File reali da metadati
+const isRealFile = (file) => {
+  if (!file) return false;
+  return (
+    typeof file.slice === 'function' && 
+    typeof file.size === 'number' && 
+    'type' in file &&
+    'lastModified' in file
+  );
+};
+
 export default function StepSummary({ 
   formData, 
   configuredElements, 
@@ -29,7 +40,7 @@ export default function StepSummary({
               <FileText size={20} className="text-primary"/> Scheda Prescrizione
             </h3>
             <p className="text-xs text-neutral-500 ml-7">
-              Richiesta da: <span className="font-bold text-neutral-700">{formData.nomeDottore}</span> ({formData.nomeStudio})
+              Richiesta da: <span className="font-bold text-neutral-700">Dr. {formData.nomeDottore} {formData.cognomeDottore}</span> ({formData.nomeStudio})
             </p>
           </div>
           <span className="text-xs bg-white border px-2 py-1 rounded text-neutral-500 font-mono">
@@ -175,7 +186,13 @@ export default function StepSummary({
                              <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
                                 {photos.map((photo, i) => (
                                     <div key={i} className="w-12 h-12 rounded-lg border border-neutral-200 overflow-hidden shrink-0">
-                                        <img src={URL.createObjectURL(photo)} alt="preview" className="w-full h-full object-cover" />
+                                        {isRealFile(photo) ? (
+                                            <img src={URL.createObjectURL(photo)} alt="preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
+                                                <ImageIcon size={20} className="text-neutral-400" />
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                              </div>
@@ -251,7 +268,7 @@ export default function StepSummary({
 
       <div className="flex justify-between mt-6 pt-4 border-t border-neutral-100">
         <Button variant="ghost" onClick={onBack}>← Indietro</Button>
-        <Button variant="gradient" onClick={onSubmit} className="pl-6 pr-6 shadow-xl shadow-primary/20">
+        <Button variant="gradient" onClick={() => onSubmit()} className="pl-6 pr-6 shadow-xl shadow-primary/20">
            <Send size={18} className="mr-2" /> Conferma Ordine
         </Button>
       </div>
