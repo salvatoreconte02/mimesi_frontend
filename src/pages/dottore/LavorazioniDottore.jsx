@@ -1,49 +1,126 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, 
-  Clock, AlertCircle, ChevronRight, Calendar 
+  Clock, AlertCircle, ChevronRight, Calendar, Plus 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import useAuthStore from '../../store/authStore';
+import NewRequestWizard from '../../components/wizard/NewRequestWizard';
 
 export default function LavorazioniDottore() {
   const user = useAuthStore(state => state.user);
   const [filter, setFilter] = useState('tutti');
   const [search, setSearch] = useState('');
   const [lavorazioni, setLavorazioni] = useState([]);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Carica lavorazioni dal localStorage filtrando per il dottore loggato
   useEffect(() => {
-    const stored = localStorage.getItem('mimesi_all_lavorazioni');
-    if (stored) {
-      const all = JSON.parse(stored);
-      // Filtra solo le lavorazioni di questo dottore
-      const mine = all.filter(lav => 
-        lav.dottore === `${user?.nome} ${user?.cognome}` ||
-        lav.dottore === user?.name
-      );
-      setLavorazioni(mine);
-    }
+    const loadData = () => {
+      const stored = localStorage.getItem('mimesi_all_lavorazioni');
+      if (stored) {
+        const all = JSON.parse(stored);
+        // Filtra solo le lavorazioni di questo dottore
+        const mine = all.filter(lav => 
+          lav.dottore === `${user?.nome} ${user?.cognome}` ||
+          lav.dottore === user?.name
+        );
+        // Ordina per data decrescente (più recenti in alto)
+        mine.sort((a, b) => new Date(b.data) - new Date(a.data));
+        setLavorazioni(mine);
+      }
+    };
+
+    loadData();
+    // Aggiorna ogni 2 secondi per vedere cambiamenti di stato
+    const interval = setInterval(loadData, 2000);
+    return () => clearInterval(interval);
   }, [user]);
 
-  // Logica di filtro DOTTORE: tutti, attivi, in prova, completati, da firmare
+  // Gestione SUBMIT NUOVA RICHIESTA
+  const handleNewRequestSubmit = (data) => {
+    const existingJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+    
+    // 1. Crea il nuovo Job in stato "In Valutazione"
+    const newJob = { 
+        id: data.id,
+        paziente: `${data.cognome} ${data.nome}`,
+        tipo: data.elements.length > 0 
+          ? `${data.elements.length} Elementi in ${data.technicalInfo.material}`
+          : 'Nuova Richiesta',
+        dottore: `${data.nomeDottore} ${data.cognomeDottore}`,
+        data: new Date().toLocaleDateString(),
+        stato: 'in_evaluation', // NUOVO STATO
+        statusLabel: 'In Valutazione',
+        progress: 10,
+        fullData: data // Salviamo tutto l'oggetto dati per ripopolare il wizard
+    };
+
+    const updatedJobs = [newJob, ...existingJobs];
+    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
+
+    // 2. Notifica RIEPILOGO al Dottore (nella sua Inbox)
+    const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+    const summaryMsg = {
+        id: Date.now(),
+        from: 'Mimesi Lab System', // Mittente Sistema
+        subject: `Riepilogo Richiesta: ${data.cognome} ${data.nome}`,
+        preview: 'La tua richiesta è stata presa in carico ed è in fase di valutazione tecnica.',
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'order_summary', // TIPO SPECIALE per renderizzare StepSummary
+        fullData: data // Alleghiamo i dati per StepSummary
+    };
+    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify([summaryMsg, ...doctorInbox]));
+
+    // 3. Notifica all'ADMIN (nella sua Inbox)
+    const adminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+    const adminMsg = {
+        id: Date.now() + 1,
+        from: `Dr. ${data.nomeDottore} ${data.cognomeDottore}`,
+        subject: `Nuova Lavorazione: ${data.cognome}`,
+        preview: 'Richiesta validazione tecnica e preventivo.',
+        date: new Date().toISOString(),
+        read: false,
+        unread: true, // Importante per il badge
+        type: 'request',
+        fullData: data
+    };
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify([adminMsg, ...adminInbox]));
+
+    // Aggiorna UI locale e chiudi wizard
+    setLavorazioni(prev => [newJob, ...prev]);
+    setIsWizardOpen(false);
+    
+    alert('Richiesta inviata con successo! Troverai il riepilogo nella tua Inbox.');
+  };
+
+  // Logica di filtro DOTTORE CON FIX CRASH
   const filteredList = lavorazioni.filter(item => {
-    const matchesSearch = item.paziente.toLowerCase().includes(search.toLowerCase()) || item.id.toLowerCase().includes(search.toLowerCase());
+    // FIX SICUREZZA
+    const pazienteSafe = String(item.paziente || '').toLowerCase();
+    const idSafe = String(item.id || '').toLowerCase();
+    const searchLower = search.toLowerCase();
+
+    const matchesSearch = pazienteSafe.includes(searchLower) || idSafe.includes(searchLower);
     
     if (filter === 'tutti') return matchesSearch;
     
-    // "DA FIRMARE" corrisponde a stato pending
+    if (filter === 'in_valutazione') {
+      return matchesSearch && item.stato === 'in_evaluation';
+    }
+
     if (filter === 'da_firmare') {
-      return matchesSearch && item.stato === 'pending';
+      return matchesSearch && item.stato === 'pending'; // pending = attesa firma preventivo
     }
     
-    // "ATTIVI" include working
     if (filter === 'attivi') {
         return matchesSearch && item.stato === 'working';
     }
     
-    // "IN PROVA" corrisponde a warning
     if (filter === 'in_prova') {
       return matchesSearch && item.stato === 'warning';
     }
@@ -54,7 +131,7 @@ export default function LavorazioniDottore() {
   });
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-8 max-w-[1400px] mx-auto min-h-screen relative">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
@@ -62,6 +139,9 @@ export default function LavorazioniDottore() {
           <h1 className="text-3xl font-bold text-neutral-800">Le Mie Lavorazioni</h1>
           <p className="text-neutral-500">Consulta lo storico e lo stato delle tue prescrizioni</p>
         </div>
+        <Button onClick={() => setIsWizardOpen(true)}>
+            <Plus size={20} className="mr-2" /> Nuova Prescrizione
+        </Button>
       </div>
 
       {/* TOOLBAR */}
@@ -78,11 +158,12 @@ export default function LavorazioniDottore() {
             />
           </div>
 
-          <div className="flex p-1 bg-neutral-100 rounded-xl w-full md:w-auto overflow-x-auto">
+          <div className="flex p-1 bg-neutral-100 rounded-xl w-full md:w-auto overflow-x-auto custom-scrollbar">
             {[
               { id: 'tutti', label: 'Tutti' },
+              { id: 'in_valutazione', label: 'In Valutazione' },
               { id: 'da_firmare', label: 'Da Firmare' },
-              { id: 'attivi', label: 'Attivi' },
+              { id: 'attivi', label: 'In Lavorazione' },
               { id: 'in_prova', label: 'In Prova' },
               { id: 'completati', label: 'Completati' }
             ].map((f) => (
@@ -116,12 +197,15 @@ export default function LavorazioniDottore() {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                   item.stato === 'completed' ? 'bg-success/10 text-success' :
                   item.stato === 'warning' ? 'bg-warning/10 text-warning' :
-                  item.stato === 'pending' ? 'bg-neutral-100 text-neutral-500' :
+                  item.stato === 'pending' ? 'bg-orange-100 text-orange-500' :
+                  item.stato === 'in_evaluation' ? 'bg-blue-100 text-blue-500' :
                   'bg-primary/10 text-primary'
                 }`}>
                   {item.stato === 'completed' ? <CheckCircle size={20} /> : 
                    item.stato === 'warning' ? <AlertCircle size={20} /> : 
-                   item.stato === 'pending' ? <FileText size={20} /> : <Clock size={20} />}
+                   item.stato === 'pending' ? <FileText size={20} /> : 
+                   item.stato === 'in_evaluation' ? <Clock size={20} /> :
+                   <Clock size={20} />}
                 </div>
 
                 {/* Info */}
@@ -139,7 +223,7 @@ export default function LavorazioniDottore() {
                 </div>
 
                 {/* Stato / Progresso */}
-                <div className="w-full md:w-32 shrink-0 flex justify-end">
+                <div className="w-full md:w-36 shrink-0 flex justify-end">
                   {item.stato === 'completed' ? (
                      <span className="inline-block px-3 py-1 bg-success/10 text-success text-xs font-bold rounded-full">
                        Completato
@@ -150,7 +234,11 @@ export default function LavorazioniDottore() {
                      </span>
                   ) : item.stato === 'pending' ? (
                      <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
-                       Da Firmare
+                       Attesa Firma
+                     </span>
+                  ) : item.stato === 'in_evaluation' ? (
+                     <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+                       In Valutazione
                      </span>
                   ) : (
                     // Barra Percentuale per Working
@@ -177,6 +265,33 @@ export default function LavorazioniDottore() {
           </div>
         )}
       </div>
+
+      {/* MODALE WIZARD */}
+      <AnimatePresence>
+        {isWizardOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          >
+             <motion.div 
+               initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+               className="bg-white rounded-3xl w-full max-w-5xl my-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+             >
+                <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50 sticky top-0 z-10">
+                   <h2 className="text-xl font-bold text-neutral-800">Nuova Prescrizione</h2>
+                   <button onClick={() => setIsWizardOpen(false)} className="p-2 hover:bg-neutral-200 rounded-full text-neutral-500">✕</button>
+                </div>
+                <div className="p-8 overflow-y-auto custom-scrollbar">
+                   <NewRequestWizard 
+                      onCancel={() => setIsWizardOpen(false)}
+                      onSubmit={handleNewRequestSubmit}
+                   />
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

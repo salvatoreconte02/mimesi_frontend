@@ -23,10 +23,12 @@ export default function StepSummary({
   photos, 
   impressionParams, 
   onBack, 
-  onSubmit 
+  onSubmit,
+  readOnly = false // Default false
 }) {
   
-  const totalSizeMB = files.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024;
+  // Gestione fallback per totalSizeMB se files è undefined o vuoto
+  const totalSizeMB = files?.reduce((acc, file) => acc + (file.size || 0), 0) / 1024 / 1024 || 0;
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -48,7 +50,7 @@ export default function StepSummary({
           </span>
         </div>
 
-        {/* NUOVO LAYOUT A GRIGLIA FLUIDA (4 CELLE) */}
+        {/* GRIGLIA FLUIDA (4 CELLE) */}
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* CELLA 1 (SX, Riga 1): Anagrafica + Materiali */}
@@ -154,7 +156,7 @@ export default function StepSummary({
                 </div>
           </div>
 
-          {/* CELLA 3 (SX, Riga 2): Allegati - ORA SI ALLINEA AL TOP DELLA RIGA 2 */}
+          {/* CELLA 3 (SX, Riga 2): Allegati - ALLINEATA AL TOP */}
           <div>
                 <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-3 pb-1 border-b border-primary/10">
                     <Paperclip size={16}/> Allegati & Impronta
@@ -165,10 +167,10 @@ export default function StepSummary({
                     <div className="bg-neutral-50 rounded-xl border border-neutral-100 overflow-hidden">
                         <div className="bg-neutral-100/50 px-3 py-2 flex justify-between items-center border-b border-neutral-200/50">
                             <span className="text-xs font-bold text-neutral-600">File Scansione 3D</span>
-                            <span className="text-[10px] bg-white border px-1.5 rounded text-neutral-400">{files.length} files • {totalSizeMB.toFixed(1)} MB</span>
+                            <span className="text-[10px] bg-white border px-1.5 rounded text-neutral-400">{files?.length || 0} files • {totalSizeMB.toFixed(1)} MB</span>
                         </div>
                         <div className="p-2 space-y-1">
-                            {files.length > 0 ? files.map((file, idx) => (
+                            {files && files.length > 0 ? files.map((file, idx) => (
                                 <div key={idx} className="flex items-center gap-2 text-xs text-neutral-700 px-1">
                                     <Box size={14} className="text-blue-400 shrink-0"/>
                                     <span className="truncate font-mono">{file.name}</span>
@@ -213,7 +215,7 @@ export default function StepSummary({
                 </div>
           </div>
 
-          {/* CELLA 4 (DX, Riga 2): Date - ORA SI ALLINEA AL TOP DELLA RIGA 2 */}
+          {/* CELLA 4 (DX, Riga 2): Date - ALLINEATA AL TOP */}
           <div>
                <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-3 pb-1 border-b border-primary/10">
                  <Calendar size={16}/> Pianificazione Temporale
@@ -259,19 +261,24 @@ export default function StepSummary({
         </div>
       </div>
 
-      <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex gap-3 items-start">
-         <Info size={20} className="text-yellow-600 mt-0.5 shrink-0" />
-         <p className="text-sm text-yellow-800">
-           Confermando, la richiesta verrà inviata all'Amministrazione per la validazione. Riceverai una notifica quando il preventivo sarà pronto.
-         </p>
-      </div>
+      {/* FOOTER - VISIBILE SOLO SE NON READONLY */}
+      {!readOnly && (
+        <>
+            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex gap-3 items-start">
+                <Info size={20} className="text-yellow-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-yellow-800">
+                Confermando, la richiesta verrà inviata all'Amministrazione per la validazione. Riceverai una notifica quando il preventivo sarà pronto.
+                </p>
+            </div>
 
-      <div className="flex justify-between mt-6 pt-4 border-t border-neutral-100">
-        <Button variant="ghost" onClick={onBack}>← Indietro</Button>
-        <Button variant="gradient" onClick={() => onSubmit()} className="pl-6 pr-6 shadow-xl shadow-primary/20">
-           <Send size={18} className="mr-2" /> Conferma Ordine
-        </Button>
-      </div>
+            <div className="flex justify-between mt-6 pt-4 border-t border-neutral-100">
+                <Button variant="ghost" onClick={onBack}>← Indietro</Button>
+                <Button variant="gradient" onClick={() => onSubmit()} className="pl-6 pr-6 shadow-xl shadow-primary/20">
+                <Send size={18} className="mr-2" /> Conferma Ordine
+                </Button>
+            </div>
+        </>
+      )}
     </motion.div>
   );
 }

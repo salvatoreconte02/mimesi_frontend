@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle, Download 
+  Search, Mail, Paperclip, Star, FileText, CheckCircle, Download, Clock 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import useAuthStore from '../../store/authStore';
+import StepSummary from '../../components/wizard/StepSummary'; 
 
 export default function InboxDottore() {
   const user = useAuthStore(state => state.user);
@@ -24,14 +25,14 @@ export default function InboxDottore() {
 
   // Segna come letto
   const markAsRead = (msgId) => {
-    const updated = messages.map(m => m.id === msgId ? { ...m, read: true } : m);
+    const updated = messages.map(m => m.id === msgId ? { ...m, read: true, unread: false } : m);
     setMessages(updated);
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
   };
 
   // Segna tutti come letti
   const markAllAsRead = () => {
-    const updated = messages.map(m => ({ ...m, read: true }));
+    const updated = messages.map(m => ({ ...m, read: true, unread: false }));
     setMessages(updated);
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
   };
@@ -60,7 +61,7 @@ export default function InboxDottore() {
     // Aggiorna lo stato della lavorazione
     const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const updated = allLavorazioni.map(lav => {
-      if (lav.id === selectedMsg.fullData.id) {
+      if (lav.id === selectedMsg.linkedJobId || lav.id === selectedMsg.fullData?.id) {
         return {
           ...lav,
           stato: 'working',
@@ -72,11 +73,7 @@ export default function InboxDottore() {
     });
     localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updated));
 
-    // Rimuovi messaggio dall'inbox
-    const updatedMessages = messages.filter(m => m.id !== selectedMsg.id);
-    setMessages(updatedMessages);
-    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updatedMessages));
-
+    // Rimuovi o aggiorna messaggio nell'inbox (opzionale: lo teniamo come storico)
     alert('✅ Documento firmato digitalmente! La lavorazione è stata avviata.');
     setSelectedMsg(null);
     setShowOtp(false);
@@ -84,10 +81,7 @@ export default function InboxDottore() {
 
   const handleReject = () => {
     if (window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
-      const updatedMessages = messages.filter(m => m.id !== selectedMsg.id);
-      setMessages(updatedMessages);
-      localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updatedMessages));
-      alert('Preventivo rifiutato');
+      alert('Preventivo rifiutato. Contatta l\'amministrazione per modifiche.');
       setSelectedMsg(null);
     }
   };
@@ -121,21 +115,22 @@ export default function InboxDottore() {
                 <div 
                   key={msg.id} 
                   onClick={() => handleSelectMessage(msg)}
-                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} ${msg.unread ? 'bg-white' : 'bg-neutral-50/50'}`}
+                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} ${!msg.read ? 'bg-white' : 'bg-neutral-50/50'}`}
                 >
                    <div className="flex justify-between items-start mb-1">
-                      <h4 className={`text-sm ${msg.unread ? 'font-bold text-neutral-800' : 'font-medium text-neutral-600'}`}>{msg.from}</h4>
+                      <h4 className={`text-sm ${!msg.read ? 'font-bold text-neutral-800' : 'font-medium text-neutral-600'}`}>{msg.from}</h4>
                       <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
                    </div>
-                   <p className={`text-xs mb-1 truncate ${msg.unread ? 'text-neutral-800 font-medium' : 'text-neutral-500'}`}>{msg.subject}</p>
+                   <p className={`text-xs mb-1 truncate ${!msg.read ? 'text-neutral-800 font-bold' : 'text-neutral-500'}`}>{msg.subject}</p>
                    <p className="text-[11px] text-neutral-400 line-clamp-1">{msg.preview}</p>
                    
                    <div className="mt-2 flex gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
-                        ${msg.type === 'quote' ? 'bg-orange-100 text-orange-700' : 
-                          msg.type === 'update' ? 'bg-blue-100 text-blue-700' : 
+                        ${msg.type === 'request_signature' ? 'bg-orange-100 text-orange-700' : 
+                          msg.type === 'order_summary' ? 'bg-blue-100 text-blue-700' : 
                           'bg-gray-100 text-gray-600'}`}>
-                        {msg.type === 'quote' ? 'Da Firmare' : 'Aggiornamento'}
+                        {msg.type === 'request_signature' ? 'Da Firmare' : 
+                         msg.type === 'order_summary' ? 'Riepilogo' : 'Info'}
                       </span>
                    </div>
                 </div>
@@ -177,80 +172,73 @@ export default function InboxDottore() {
                 </div>
 
                 {/* Corpo Messaggio */}
-                <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed">
-                   <p>{selectedMsg.preview}</p>
-                   <br />
+                <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
+                   <p className="mb-4">{selectedMsg.preview}</p>
                    
-                   {selectedMsg.type === 'quote' && selectedMsg.fullData && (
-                     <div className="mt-6 space-y-4">
-                       
-                       {/* Dettagli Paziente */}
-                       <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-                         <h4 className="font-bold text-neutral-800 mb-3">Dettagli Lavorazione</h4>
-                         <div className="grid grid-cols-2 gap-3 text-xs">
-                           <div>
-                             <span className="text-neutral-400 block">Paziente</span>
-                             <span className="font-bold">{selectedMsg.fullData.cognome} {selectedMsg.fullData.nome}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Elementi</span>
-                             <span className="font-bold">{selectedMsg.fullData.elements?.length || 0}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Materiale</span>
-                             <span className="font-bold capitalize">{selectedMsg.fullData.technicalInfo?.material?.replace(/_/g, ' ')}</span>
-                           </div>
-                           <div>
-                             <span className="text-neutral-400 block">Colore</span>
-                             <span className="font-bold">{selectedMsg.fullData.technicalInfo?.color}</span>
-                           </div>
-                         </div>
-                       </div>
+                   {/* CASO 1: RIEPILOGO ORDINE (SOLA LETTURA, SENZA CONTAINER BRUTTO) */}
+                   {selectedMsg.type === 'order_summary' && selectedMsg.fullData && (
+                     <div className="mt-4">
+                        <StepSummary 
+                           formData={selectedMsg.fullData}
+                           configuredElements={selectedMsg.fullData.elements}
+                           technicalInfo={selectedMsg.fullData.technicalInfo}
+                           dates={selectedMsg.fullData.dates}
+                           files={selectedMsg.fullData.filesMetadata || []} 
+                           photos={selectedMsg.fullData.photosMetadata || []} 
+                           impressionParams={selectedMsg.fullData.impressionParams}
+                           readOnly={true} // Nasconde bottoni
+                        />
+                     </div>
+                   )}
 
-                       {/* Preventivo */}
-                       {selectedMsg.fullData.quote && (
-                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
+                   {/* CASO 2: RICHIESTA FIRMA (CON PREVENTIVO) */}
+                   {selectedMsg.type === 'request_signature' && selectedMsg.quoteData && (
+                     <div className="mt-6 space-y-4">
+                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
                             <h4 className="font-bold text-primary mb-4 flex items-center gap-2">
-                              <FileText size={20} /> Riepilogo Preventivo
+                              <FileText size={20} /> Preventivo da Approvare
                             </h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
-                                <span className="text-neutral-600">Imponibile:</span>
-                                <span className="font-bold">€ {selectedMsg.fullData.quote.subtotal?.toFixed(2)}</span>
+                                <span className="text-neutral-600">Totale Elementi:</span>
+                                <span className="font-bold">{selectedMsg.quoteData.elementCount}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-neutral-600">IVA (22%):</span>
-                                <span className="font-bold">€ {selectedMsg.fullData.quote.vat?.toFixed(2)}</span>
+                                <span className="text-neutral-600">Spedizioni:</span>
+                                <span className="font-bold">€ {selectedMsg.quoteData.shipmentTotal?.toFixed(2)}</span>
                               </div>
+                              {selectedMsg.quoteData.manualAdjustment !== 0 && (
+                                <div className="flex justify-between text-neutral-500 italic">
+                                    <span>Variazione / Sconto:</span>
+                                    <span>€ {Number(selectedMsg.quoteData.manualAdjustment).toFixed(2)}</span>
+                                </div>
+                              )}
                               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between text-lg">
-                                <span className="text-primary font-bold">TOTALE:</span>
-                                <span className="text-primary font-bold">€ {selectedMsg.fullData.quote.total?.toFixed(2)}</span>
+                                <span className="text-primary font-bold">TOTALE ORDINE:</span>
+                                <span className="text-primary font-bold">€ {selectedMsg.quoteData.total?.toFixed(2)}</span>
                               </div>
                             </div>
                          </div>
-                       )}
-
-                       {/* File Allegati */}
-                       <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-4">
-                          <Download className="text-blue-600" size={24} />
-                          <div className="flex-1">
-                             <p className="text-sm font-bold text-blue-900">Documento PDF Allegato</p>
-                             <p className="text-xs text-blue-600">Preventivo completo da scaricare</p>
-                          </div>
-                          <Button className="text-xs px-3 py-1.5 h-auto">Scarica</Button>
-                       </div>
+                         <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-4">
+                            <Download className="text-blue-600" size={24} />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-blue-900">Scarica PDF Preventivo</p>
+                                <p className="text-xs text-blue-600">Documento ufficiale valido ai fini fiscali</p>
+                            </div>
+                            <Button className="text-xs px-3 py-1.5 h-auto">Scarica</Button>
+                         </div>
                      </div>
                    )}
                 </div>
 
                 {/* Footer Azioni */}
                 <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-                   {selectedMsg.type === 'quote' && !showOtp ? (
+                   {selectedMsg.type === 'request_signature' && !showOtp ? (
                      <div className="flex gap-3 justify-end">
-                       <Button variant="ghost" className="text-error" onClick={handleReject}>Rifiuta</Button>
+                       <Button variant="ghost" className="text-error" onClick={handleReject}>Rifiuta Preventivo</Button>
                        <Button variant="gradient" onClick={handleRequestOtp}>Firma Digitalmente</Button>
                      </div>
-                   ) : selectedMsg.type === 'quote' && showOtp ? (
+                   ) : selectedMsg.type === 'request_signature' && showOtp ? (
                      <div className="space-y-3">
                        <div className="bg-primary/5 p-4 rounded-xl border border-primary/20">
                          <p className="text-sm text-neutral-700 mb-3">

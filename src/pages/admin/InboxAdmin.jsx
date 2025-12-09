@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle 
+  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle, ArrowRight 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import RiepilogoScheda from '../admin/RiepilogoScheda';
+import StepSummary from '../../components/wizard/StepSummary'; 
 
 export default function InboxAdmin() {
   const [selectedMsg, setSelectedMsg] = useState(null);
@@ -13,22 +13,27 @@ export default function InboxAdmin() {
 
   // Carica messaggi dal localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('mimesi_admin_inbox');
-    if (stored) {
-      setMessages(JSON.parse(stored));
-    }
+    const loadMessages = () => {
+       const stored = localStorage.getItem('mimesi_admin_inbox');
+       if (stored) {
+         setMessages(JSON.parse(stored));
+       }
+    };
+    loadMessages();
+    const interval = setInterval(loadMessages, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Segna come letto
   const markAsRead = (msgId) => {
-    const updated = messages.map(m => m.id === msgId ? { ...m, read: true } : m);
+    const updated = messages.map(m => m.id === msgId ? { ...m, read: true, unread: false } : m);
     setMessages(updated);
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
   };
 
   // Segna tutti come letti
   const markAllAsRead = () => {
-    const updated = messages.map(m => ({ ...m, read: true }));
+    const updated = messages.map(m => ({ ...m, read: true, unread: false }));
     setMessages(updated);
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
   };
@@ -38,6 +43,11 @@ export default function InboxAdmin() {
     if (!msg.read) {
       markAsRead(msg.id);
     }
+  };
+
+  // Quando l'admin clicca "Vai alla Lavorazione"
+  const handleOpenJob = () => {
+      alert("Vai nella sezione 'Lavorazioni' per validare questa richiesta (troverai il badge 'DA VALIDARE').");
   };
 
   return (
@@ -69,18 +79,20 @@ export default function InboxAdmin() {
                 <div 
                   key={msg.id} 
                   onClick={() => handleSelectMessage(msg)}
-                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} ${msg.unread ? 'bg-white' : 'bg-neutral-50/50'}`}
+                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 
+                      ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} 
+                      ${!msg.read ? 'bg-white' : 'bg-neutral-50/50'}`}
                 >
                    <div className="flex justify-between items-start mb-1">
-                      <h4 className={`text-sm ${msg.unread ? 'font-bold text-neutral-800' : 'font-medium text-neutral-600'}`}>{msg.from}</h4>
+                      <h4 className={`text-sm ${!msg.read ? 'font-bold text-neutral-900' : 'font-medium text-neutral-600'}`}>{msg.from}</h4>
                       <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
                    </div>
-                   <p className={`text-xs mb-1 truncate ${msg.unread ? 'text-neutral-800 font-medium' : 'text-neutral-500'}`}>{msg.subject}</p>
+                   <p className={`text-xs mb-1 truncate ${!msg.read ? 'text-neutral-800 font-bold' : 'text-neutral-500'}`}>{msg.subject}</p>
                    <p className="text-[11px] text-neutral-400 line-clamp-1">{msg.preview}</p>
                    
                    <div className="mt-2 flex gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
-                        ${msg.type === 'request' ? 'bg-blue-100 text-blue-700' : 
+                        ${msg.type === 'request' ? 'bg-blue-100 text-blue-700 font-bold' : 
                           msg.type === 'question' ? 'bg-orange-100 text-orange-700' : 
                           'bg-gray-100 text-gray-600'}`}>
                         {msg.type === 'request' ? 'Nuova Richiesta' : 'Notifica'}
@@ -125,13 +137,22 @@ export default function InboxAdmin() {
                 </div>
 
                 {/* Corpo Messaggio */}
-                <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed">
-                   <p>{selectedMsg.preview}</p>
-                   <br />
+                <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
+                   <p className="mb-4">{selectedMsg.preview}</p>
                    
+                   {/* Se è una richiesta, mostriamo anteprima della scheda - PULITA */}
                    {selectedMsg.type === 'request' && selectedMsg.fullData && (
-                     <div className="mt-6">
-                       <RiepilogoScheda data={selectedMsg.fullData} />
+                     <div className="mt-4">
+                        <StepSummary 
+                           formData={selectedMsg.fullData}
+                           configuredElements={selectedMsg.fullData.elements}
+                           technicalInfo={selectedMsg.fullData.technicalInfo}
+                           dates={selectedMsg.fullData.dates}
+                           files={selectedMsg.fullData.filesMetadata || []}
+                           photos={selectedMsg.fullData.photosMetadata || []}
+                           impressionParams={selectedMsg.fullData.impressionParams}
+                           readOnly={true} // Nasconde azioni
+                        />
                      </div>
                    )}
                 </div>
@@ -141,7 +162,9 @@ export default function InboxAdmin() {
                    {selectedMsg.type === 'request' ? (
                      <>
                        <Button variant="ghost" className="text-error">Rifiuta</Button>
-                       <Button variant="gradient">Valida e Crea Preventivo</Button>
+                       <Button variant="gradient" onClick={handleOpenJob}>
+                           Vai alla Lavorazione <ArrowRight size={18} className="ml-2"/>
+                       </Button>
                      </>
                    ) : (
                      <>
