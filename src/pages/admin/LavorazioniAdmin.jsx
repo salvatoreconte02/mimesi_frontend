@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, Clock, 
-  AlertCircle, ChevronRight, Calendar, AlertTriangle 
+  AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft 
 } from 'lucide-react';
-import Card from '../../components/ui/Card'; 
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button'; 
 import NewRequestWizard from '../../components/wizard/NewRequestWizard'; 
 
 export default function LavorazioniAdmin() {
@@ -12,8 +13,11 @@ export default function LavorazioniAdmin() {
   const [search, setSearch] = useState('');
   const [lavorazioni, setLavorazioni] = useState([]);
   
-  // STATO PER GESTIRE LA VALIDAZIONE (Wizard in modalità edit)
+  // STATI PER IL WIZARD
+  // editingJob: Se popolato, apre il wizard in modalità 'admin' (validazione)
+  // isCreating: Se true, apre il wizard in modalità 'create' (nuova lavorazione interna)
   const [editingJob, setEditingJob] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Carica lavorazioni dal localStorage
   useEffect(() => {
@@ -29,22 +33,46 @@ export default function LavorazioniAdmin() {
     return () => clearInterval(interval);
   }, []);
 
-  // Gestione Validazione e Chiusura Wizard
-  const handleAdminAction = (updatedData) => {
+  // --- HANDLER: CREAZIONE NUOVA LAVORAZIONE (Interna) ---
+  const handleCreateSubmit = (data) => {
+    const existingJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+    
+    const newJob = { 
+        id: data.id,
+        paziente: `${data.cognome} ${data.nome}`,
+        tipo: data.elements.length > 0 
+          ? `${data.elements.length} Elementi in ${data.technicalInfo.material}`
+          : 'Nuova Lavorazione Interna',
+        dottore: data.nomeDottore ? `Dr. ${data.nomeDottore} ${data.cognomeDottore}` : 'Interno',
+        data: new Date().toLocaleDateString(),
+        stato: 'working', // Va direttamente in lavorazione perché creata da admin
+        statusLabel: 'In Lavorazione',
+        progress: 10,
+        fullData: data 
+    };
+
+    const updatedJobs = [newJob, ...existingJobs];
+    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
+
+    setLavorazioni(updatedJobs);
+    setIsCreating(false);
+    alert('Nuova lavorazione creata e avviata!');
+  };
+
+  // --- HANDLER: VALIDAZIONE ESISTENTE ---
+  const handleValidationSubmit = (updatedData) => {
     const jobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
     
-    // Troviamo e aggiorniamo il job
     const updatedJobs = jobs.map(j => {
         if (j.id === updatedData.id) {
             let newStatus = j.stato;
             let statusLabel = j.statusLabel;
 
             if (updatedData.adminAction === 'approve_internal') {
-                newStatus = 'working'; // Va dritto in lavorazione
+                newStatus = 'working';
                 statusLabel = 'In Lavorazione';
                 
-                // Messaggio al dottore: Conferma semplice
                 doctorInbox.unshift({
                     id: Date.now(),
                     from: 'Mimesi Admin',
@@ -57,10 +85,9 @@ export default function LavorazioniAdmin() {
                 });
 
             } else if (updatedData.adminAction === 'send_to_doctor') {
-                newStatus = 'pending'; // Va in attesa firma OTP
+                newStatus = 'pending';
                 statusLabel = 'Attesa Firma';
 
-                // Messaggio al dottore: Richiesta Firma
                 doctorInbox.unshift({
                     id: Date.now(),
                     from: 'Mimesi Admin',
@@ -69,14 +96,14 @@ export default function LavorazioniAdmin() {
                     date: new Date().toISOString(),
                     read: false,
                     unread: true,
-                    type: 'request_signature', // Questo attiverà il tasto "Firma OTP" nell'inbox
+                    type: 'request_signature',
                     linkedJobId: updatedData.id,
-                    quoteData: updatedData.quote // Alleghiamo il preventivo calcolato
+                    quoteData: updatedData.quote
                 });
             }
 
             return { 
-                ...updatedData, // Aggiorna tutti i campi (tecnici, date, ecc.)
+                ...updatedData, 
                 stato: newStatus,
                 statusLabel: statusLabel,
                 progress: 15
@@ -89,20 +116,19 @@ export default function LavorazioniAdmin() {
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(doctorInbox));
     
     setLavorazioni(updatedJobs);
-    setEditingJob(null); // Chiude il wizard
+    setEditingJob(null);
     alert('Stato lavorazione aggiornato con successo!');
   };
 
   const openValidation = (job) => {
+     // Solo se è in valutazione o attesa firma si apre la validazione, altrimenti è solo visualizzazione (per ora no-op)
      if(job.stato === 'in_evaluation' || job.stato === 'pending') {
-         // Apri il wizard popolandolo con i dati salvati
-         setEditingJob(job.fullData || job); // Usa fullData se esiste, altrimenti job stesso
+         setEditingJob(job.fullData || job);
      }
   };
 
-  // Logica filtro ADMIN con PROTEZIONE TOTALE CRASH
+  // Logica filtro ADMIN con PROTEZIONE CRASH
   const filteredList = lavorazioni.filter(item => {
-    // FIX: Avvolgiamo tutto in String() per gestire anche numeri o null
     const pazienteSafe = String(item.paziente || '').toLowerCase();
     const idSafe = String(item.id || '').toLowerCase();
     const dottoreSafe = String(item.dottore || '').toLowerCase();
@@ -114,26 +140,52 @@ export default function LavorazioniAdmin() {
       dottoreSafe.includes(searchLower);
     
     if (filter === 'tutti') return matchesSearch;
-    
-    if (filter === 'da_valutare') {
-      return matchesSearch && (item.stato === 'in_evaluation' || item.stato === 'pending');
-    }
-    
-    if (filter === 'attivi') {
-      return matchesSearch && (item.stato === 'working');
-    }
-    
-    if (filter === 'in_prova') {
-      return matchesSearch && item.stato === 'warning';
-    }
-    
-    if (filter === 'completati') {
-      return matchesSearch && item.stato === 'completed';
-    }
-    
+    if (filter === 'da_valutare') return matchesSearch && (item.stato === 'in_evaluation' || item.stato === 'pending');
+    if (filter === 'attivi') return matchesSearch && (item.stato === 'working');
+    if (filter === 'in_prova') return matchesSearch && item.stato === 'warning';
+    if (filter === 'completati') return matchesSearch && item.stato === 'completed';
     return matchesSearch;
   });
 
+  // --- RENDER WIZARD (FULL PAGE) ---
+  if (isCreating || editingJob) {
+      return (
+        <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                
+                {/* Header Wizard Navigazione */}
+                <div className="flex items-center gap-4 mb-6">
+                    <button 
+                        onClick={() => { setIsCreating(false); setEditingJob(null); }}
+                        className="p-2 bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50 text-neutral-500 transition-colors"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-neutral-800">
+                            {isCreating ? 'Nuova Lavorazione Interna' : 'Validazione Tecnica'}
+                        </h1>
+                        <p className="text-neutral-500 text-sm">
+                            {isCreating ? 'Crea una nuova lavorazione manuale' : 'Revisiona e valida la richiesta del dottore'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Wizard Component */}
+                <div className="bg-white/50 rounded-3xl">
+                     <NewRequestWizard 
+                        mode={isCreating ? 'create' : 'admin'}
+                        initialData={editingJob} // Sarà null se isCreating, popolato se editingJob
+                        onCancel={() => { setIsCreating(false); setEditingJob(null); }}
+                        onSubmit={isCreating ? handleCreateSubmit : handleValidationSubmit}
+                     />
+                </div>
+            </motion.div>
+        </div>
+      );
+  }
+
+  // --- RENDER LISTA (DEFAULT) ---
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen relative">
       
@@ -143,10 +195,13 @@ export default function LavorazioniAdmin() {
           <h1 className="text-3xl font-bold text-neutral-800">Gestione Lavorazioni</h1>
           <p className="text-neutral-500">Monitora e valida le prescrizioni del laboratorio</p>
         </div>
-        <div className="flex gap-2">
-          <span className="px-3 py-1.5 bg-white border rounded-lg text-sm">
-            <span className="font-bold text-primary">{lavorazioni.length}</span> Totali
+        <div className="flex gap-3">
+          <span className="px-3 py-2 bg-white border rounded-lg text-sm flex items-center">
+            <span className="font-bold text-primary mr-2">{lavorazioni.length}</span> Totali
           </span>
+          <Button onClick={() => setIsCreating(true)}>
+             <Plus size={20} className="mr-2" /> Nuova Lavorazione
+          </Button>
         </div>
       </div>
 
@@ -222,7 +277,7 @@ export default function LavorazioniAdmin() {
                   <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-neutral-500 flex-wrap">
                     <span className="font-mono bg-neutral-50 px-1.5 py-0.5 rounded border">{item.id}</span>
                     <span>• {item.tipo}</span>
-                    {item.dottore && <span>• Dr. {item.dottore}</span>}
+                    {item.dottore && <span>• {item.dottore}</span>}
                   </div>
                 </div>
 
@@ -273,36 +328,6 @@ export default function LavorazioniAdmin() {
           </div>
         )}
       </div>
-
-      {/* MODALE DI VALIDAZIONE (WIZARD IN MODE ADMIN) */}
-      <AnimatePresence>
-        {editingJob && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-             <motion.div 
-               initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-               className="bg-white rounded-3xl w-full max-w-5xl my-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-             >
-                <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50">
-                   <h2 className="text-xl font-bold text-neutral-800">Validazione Tecnica</h2>
-                   <button onClick={() => setEditingJob(null)} className="p-2 hover:bg-neutral-200 rounded-full text-neutral-500">✕</button>
-                </div>
-                <div className="p-8 overflow-y-auto custom-scrollbar">
-                   {/* Passiamo initialData e mode='admin' */}
-                   <NewRequestWizard 
-                      mode="admin"
-                      initialData={editingJob}
-                      onCancel={() => setEditingJob(null)}
-                      onSubmit={handleAdminAction}
-                   />
-                </div>
-             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
     </div>
   );
 }
