@@ -44,6 +44,23 @@ export default function DashboardAdmin() {
   const handleWizardSubmit = (finalData) => {
     console.log("Processo Admin Completato:", finalData);
     
+    // SALVATAGGIO LAVORAZIONE NEL SISTEMA
+    const newLavorazione = {
+      id: finalData.id,
+      paziente: `${finalData.cognome} ${finalData.nome}`,
+      dottore: `${finalData.nomeDottore} ${finalData.cognomeDottore}`,
+      tipo: `${finalData.elements.length} Elem. ${finalData.technicalInfo.material.replace(/_/g, ' ')}`,
+      data: new Date().toLocaleDateString('it-IT'),
+      stato: finalData.adminAction === 'send_to_doctor' ? 'pending' : 'working',
+      progress: finalData.adminAction === 'send_to_doctor' ? 10 : 20,
+      statusLabel: finalData.adminAction === 'send_to_doctor' ? 'Da Firmare' : 'Avviata',
+      fullData: finalData
+    };
+
+    // Salva in localStorage globale
+    const currentLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify([newLavorazione, ...currentLavorazioni]));
+    
     if (finalData.adminAction === 'send_to_doctor') {
         const msgForDoctor = {
           id: Date.now(),

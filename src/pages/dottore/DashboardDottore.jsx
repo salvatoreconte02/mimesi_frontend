@@ -156,6 +156,22 @@ export default function DashboardDottore() {
     // 4. Salviamo nel localStorage
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updatedInbox));
 
+    // 5. NUOVO: Salviamo anche nella lista lavorazioni
+    const newLavorazione = {
+      id: data.id,
+      paziente: `${data.cognome} ${data.nome}`,
+      dottore: `${data.nomeDottore} ${data.cognomeDottore}`,
+      tipo: `${data.elements.length} Elem. ${data.technicalInfo.material.replace(/_/g, ' ')}`,
+      data: new Date().toLocaleDateString('it-IT'),
+      stato: 'pending',
+      progress: 0,
+      statusLabel: 'In Attesa Validazione',
+      fullData: data
+    };
+
+    const currentLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify([newLavorazione, ...currentLavorazioni]));
+
     console.log("Richiesta inviata all'Admin:", newRequestMsg);
     alert("Richiesta inviata con successo al Laboratorio!");
     handleBackToDashboard();

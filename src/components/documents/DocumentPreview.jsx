@@ -31,8 +31,16 @@ export default function DocumentPreview({ data, quote }) {
                 <div className="space-y-4">
                     <h4 className="flex items-center gap-2 text-xs font-bold text-primary uppercase border-b border-primary/10 pb-1"><Layers size={14}/> Specifiche</h4>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-blue-50 p-3 rounded-xl border border-blue-100"><span className="block text-[9px] text-blue-400 uppercase font-bold">Materiale</span><span className="text-sm font-bold text-blue-900 capitalize">{data.technicalInfo.material}</span></div>
-                        <div className="bg-purple-50 p-3 rounded-xl border border-purple-100"><span className="block text-[9px] text-purple-400 uppercase font-bold">Colore</span><span className="text-sm font-bold text-purple-900">{data.technicalInfo.color}</span></div>
+                        <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                            <span className="block text-[9px] text-blue-400 uppercase font-bold mb-1">Materiale</span>
+                            <span className="text-[11px] font-bold text-blue-900 capitalize break-words leading-tight block">
+                                {data.technicalInfo.material.replace(/_/g, ' ')}
+                            </span>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                            <span className="block text-[9px] text-purple-400 uppercase font-bold mb-1">Colore</span>
+                            <span className="text-xs font-bold text-purple-900">{data.technicalInfo.color}</span>
+                        </div>
                     </div>
                 </div>
                 <div className="col-span-2 space-y-4">

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import useAuthStore from './store/authStore';
-import Sidebar from './components/layout/Sidebar';
+import SidebarDottore from './components/layout/SidebarDottore';
+import SidebarAdmin from './components/layout/SidebarAdmin';
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 
 // --- IMPORT PAGINE ---
 import DashboardDottore from './pages/dottore/DashboardDottore';
 import LavorazioniDottore from './pages/dottore/LavorazioniDottore';
-import InboxDottore from './pages/dottore/InboxDottore'; // <--- NUOVO IMPORT
+import InboxDottore from './pages/dottore/InboxDottore';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
+import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
 import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
@@ -58,13 +60,13 @@ function App() {
     // 1. PAGINE SPECIFICHE (Es. Lavorazioni, Inbox)
     if (page === 'lavorazioni') {
        if (user?.role === 'dottore') return <LavorazioniDottore />;
+       if (user?.role === 'admin') return <LavorazioniAdmin />;
     }
 
-    // --- NUOVA ROTTA INBOX ---
+    // --- ROTTA INBOX (Solo Dottore) ---
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
     }
-    // -------------------------
 
     // 2. DASHBOARD (Differenziata per ruolo)
     if (page === 'dashboard') {
@@ -89,9 +91,12 @@ function App() {
     );
   };
 
+  // Seleziona la sidebar corretta in base al ruolo
+  const SidebarComponent = user?.role === 'admin' ? SidebarAdmin : SidebarDottore;
+
   return (
     <div className="bg-neutral-50 min-h-screen pl-64">
-      <Sidebar setPage={setPage} />
+      <SidebarComponent setPage={setPage} />
       <main className="min-h-screen">
         {renderContent()}
       </main>
