@@ -1,14 +1,30 @@
+import { useState, useEffect } from 'react';
 import { LayoutDashboard, FileText, MessageSquare, LogOut } from 'lucide-react'; 
 import useAuthStore from '../../store/authStore';
 import logoImg from '../../assets/mimesilogo.jpg'; 
 
 export default function SidebarDottore({ setPage }) {
   const { user, logout } = useAuthStore();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Aggiorna il conteggio dei non letti
+  useEffect(() => {
+    const updateCount = () => {
+      const inbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+      const count = inbox.filter(m => !m.read).length;
+      setUnreadCount(count);
+    };
+
+    updateCount();
+    // Aggiorna ogni secondo per rilevare cambiamenti
+    const interval = setInterval(updateCount, 1000);
+    return () => clearInterval(interval);
+  }, []);
   
   const menus = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'lavorazioni', icon: FileText, label: 'Lavorazioni' },
-    { id: 'inbox', icon: MessageSquare, label: 'Inbox', badge: 2 },
+    { id: 'inbox', icon: MessageSquare, label: 'Inbox', badge: unreadCount },
   ];
 
   return (
@@ -32,7 +48,7 @@ export default function SidebarDottore({ setPage }) {
             <item.icon size={20} />
             <span className="font-medium">{item.label}</span>
             
-            {item.badge && (
+            {item.badge && item.badge > 0 && (
               <span className="absolute right-3 bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                 {item.badge}
               </span>

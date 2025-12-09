@@ -11,6 +11,7 @@ import LavorazioniDottore from './pages/dottore/LavorazioniDottore';
 import InboxDottore from './pages/dottore/InboxDottore';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
+import InboxAdmin from './pages/admin/InboxAdmin';
 import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
@@ -63,9 +64,10 @@ function App() {
        if (user?.role === 'admin') return <LavorazioniAdmin />;
     }
 
-    // --- ROTTA INBOX (Solo Dottore) ---
+    // --- ROTTA INBOX ---
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
+        if (user?.role === 'admin') return <InboxAdmin />;
     }
 
     // 2. DASHBOARD (Differenziata per ruolo)

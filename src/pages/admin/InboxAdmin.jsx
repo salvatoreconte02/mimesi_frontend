@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle, Download 
+  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import useAuthStore from '../../store/authStore';
 
-export default function InboxDottore() {
-  const user = useAuthStore(state => state.user);
+export default function InboxAdmin() {
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [showOtp, setShowOtp] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
 
   // Carica messaggi dal localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('mimesi_doctor_inbox');
+    const stored = localStorage.getItem('mimesi_admin_inbox');
     if (stored) {
       setMessages(JSON.parse(stored));
     }
@@ -26,69 +22,20 @@ export default function InboxDottore() {
   const markAsRead = (msgId) => {
     const updated = messages.map(m => m.id === msgId ? { ...m, read: true } : m);
     setMessages(updated);
-    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
   };
 
   // Segna tutti come letti
   const markAllAsRead = () => {
     const updated = messages.map(m => ({ ...m, read: true }));
     setMessages(updated);
-    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
   };
 
   const handleSelectMessage = (msg) => {
     setSelectedMsg(msg);
-    setShowOtp(false);
-    setOtpCode('');
     if (!msg.read) {
       markAsRead(msg.id);
-    }
-  };
-
-  // Firma digitale
-  const handleRequestOtp = () => {
-    alert('Codice OTP inviato via email!');
-    setShowOtp(true);
-  };
-
-  const handleConfirmSignature = () => {
-    if (otpCode.length !== 6) {
-      alert('Inserisci un codice OTP valido (6 cifre)');
-      return;
-    }
-
-    // Aggiorna lo stato della lavorazione
-    const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
-    const updated = allLavorazioni.map(lav => {
-      if (lav.id === selectedMsg.fullData.id) {
-        return {
-          ...lav,
-          stato: 'working',
-          progress: 20,
-          statusLabel: 'In Lavorazione'
-        };
-      }
-      return lav;
-    });
-    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updated));
-
-    // Rimuovi messaggio dall'inbox
-    const updatedMessages = messages.filter(m => m.id !== selectedMsg.id);
-    setMessages(updatedMessages);
-    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updatedMessages));
-
-    alert('✅ Documento firmato digitalmente! La lavorazione è stata avviata.');
-    setSelectedMsg(null);
-    setShowOtp(false);
-  };
-
-  const handleReject = () => {
-    if (window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
-      const updatedMessages = messages.filter(m => m.id !== selectedMsg.id);
-      setMessages(updatedMessages);
-      localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updatedMessages));
-      alert('Preventivo rifiutato');
-      setSelectedMsg(null);
     }
   };
 
@@ -97,8 +44,8 @@ export default function InboxDottore() {
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-800">Messaggi & Preventivi</h1>
-          <p className="text-neutral-500">Comunicazioni dal laboratorio e documenti da firmare</p>
+          <h1 className="text-3xl font-bold text-neutral-800">Messaggi & Richieste</h1>
+          <p className="text-neutral-500">Comunicazioni dai dottori e notifiche di sistema</p>
         </div>
         <div className="flex gap-2">
            <Button variant="secondary" className="text-sm" onClick={markAllAsRead}>Segna tutti letti</Button>
@@ -132,10 +79,10 @@ export default function InboxDottore() {
                    
                    <div className="mt-2 flex gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
-                        ${msg.type === 'quote' ? 'bg-orange-100 text-orange-700' : 
-                          msg.type === 'update' ? 'bg-blue-100 text-blue-700' : 
+                        ${msg.type === 'request' ? 'bg-blue-100 text-blue-700' : 
+                          msg.type === 'question' ? 'bg-orange-100 text-orange-700' : 
                           'bg-gray-100 text-gray-600'}`}>
-                        {msg.type === 'quote' ? 'Da Firmare' : 'Aggiornamento'}
+                        {msg.type === 'request' ? 'Nuova Richiesta' : 'Notifica'}
                       </span>
                    </div>
                 </div>
@@ -181,12 +128,10 @@ export default function InboxDottore() {
                    <p>{selectedMsg.preview}</p>
                    <br />
                    
-                   {selectedMsg.type === 'quote' && selectedMsg.fullData && (
+                   {selectedMsg.type === 'request' && selectedMsg.fullData && (
                      <div className="mt-6 space-y-4">
-                       
-                       {/* Dettagli Paziente */}
                        <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-                         <h4 className="font-bold text-neutral-800 mb-3">Dettagli Lavorazione</h4>
+                         <h4 className="font-bold text-neutral-800 mb-2">Dettagli Prescrizione</h4>
                          <div className="grid grid-cols-2 gap-3 text-xs">
                            <div>
                              <span className="text-neutral-400 block">Paziente</span>
@@ -207,75 +152,30 @@ export default function InboxDottore() {
                          </div>
                        </div>
 
-                       {/* Preventivo */}
-                       {selectedMsg.fullData.quote && (
-                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
-                            <h4 className="font-bold text-primary mb-4 flex items-center gap-2">
-                              <FileText size={20} /> Riepilogo Preventivo
-                            </h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">Imponibile:</span>
-                                <span className="font-bold">€ {selectedMsg.fullData.quote.subtotal?.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">IVA (22%):</span>
-                                <span className="font-bold">€ {selectedMsg.fullData.quote.vat?.toFixed(2)}</span>
-                              </div>
-                              <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between text-lg">
-                                <span className="text-primary font-bold">TOTALE:</span>
-                                <span className="text-primary font-bold">€ {selectedMsg.fullData.quote.total?.toFixed(2)}</span>
-                              </div>
-                            </div>
-                         </div>
-                       )}
-
-                       {/* File Allegati */}
-                       <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-4">
-                          <Download className="text-blue-600" size={24} />
+                       <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-4">
+                          <FileText className="text-blue-600" size={24} />
                           <div className="flex-1">
-                             <p className="text-sm font-bold text-blue-900">Documento PDF Allegato</p>
-                             <p className="text-xs text-blue-600">Preventivo completo da scaricare</p>
+                             <p className="text-sm font-bold text-blue-900">File Scansione Allegati</p>
+                             <p className="text-xs text-blue-600">{selectedMsg.fullData.filesMetadata?.length || 0} file 3D</p>
                           </div>
-                          <Button className="text-xs px-3 py-1.5 h-auto">Scarica</Button>
+                          <Button className="text-xs px-3 py-1.5 h-auto">Visualizza</Button>
                        </div>
                      </div>
                    )}
                 </div>
 
                 {/* Footer Azioni */}
-                <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-                   {selectedMsg.type === 'quote' && !showOtp ? (
-                     <div className="flex gap-3 justify-end">
-                       <Button variant="ghost" className="text-error" onClick={handleReject}>Rifiuta</Button>
-                       <Button variant="gradient" onClick={handleRequestOtp}>Firma Digitalmente</Button>
-                     </div>
-                   ) : selectedMsg.type === 'quote' && showOtp ? (
-                     <div className="space-y-3">
-                       <div className="bg-primary/5 p-4 rounded-xl border border-primary/20">
-                         <p className="text-sm text-neutral-700 mb-3">
-                           <CheckCircle className="inline mr-2 text-primary" size={16} />
-                           Codice OTP inviato alla tua email
-                         </p>
-                         <input 
-                           type="text" 
-                           placeholder="Inserisci codice a 6 cifre" 
-                           value={otpCode}
-                           onChange={(e) => setOtpCode(e.target.value)}
-                           maxLength={6}
-                           className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-xl font-mono tracking-widest"
-                         />
-                       </div>
-                       <div className="flex gap-3 justify-end">
-                         <Button variant="ghost" onClick={() => setShowOtp(false)}>Annulla</Button>
-                         <Button variant="success" onClick={handleConfirmSignature}>Conferma Firma</Button>
-                       </div>
-                     </div>
+                <div className="p-4 border-t border-neutral-100 bg-neutral-50 flex gap-3 justify-end">
+                   {selectedMsg.type === 'request' ? (
+                     <>
+                       <Button variant="ghost" className="text-error">Rifiuta</Button>
+                       <Button variant="gradient">Valida e Crea Preventivo</Button>
+                     </>
                    ) : (
-                     <div className="flex gap-3 justify-end">
+                     <>
                        <input type="text" placeholder="Scrivi una risposta..." className="flex-1 px-4 py-2 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
                        <Button variant="gradient" className="px-6">Invia</Button>
-                     </div>
+                     </>
                    )}
                 </div>
 
