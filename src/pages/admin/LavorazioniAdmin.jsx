@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button'; 
-// MODIFICA: Importo il nuovo wrapper specifico per Admin
 import WizardRequestAdmin from '../../components/wizard/WizardRequestAdmin'; 
 
 export default function LavorazioniAdmin() {
@@ -22,18 +21,31 @@ export default function LavorazioniAdmin() {
   useEffect(() => {
     const loadData = () => {
       const stored = localStorage.getItem('mimesi_all_lavorazioni');
-      if (stored) {
-        setLavorazioni(JSON.parse(stored));
+      const allJobs = stored ? JSON.parse(stored) : [];
+      setLavorazioni(allJobs);
+
+      // -- CONTROLLO FILTRO DALLA DASHBOARD --
+      const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
+      if (preferredFilter) {
+          setFilter(preferredFilter);
+          sessionStorage.removeItem('mimesi_filter_pref');
+      }
+
+      // -- NUOVO: CONTROLLO RICHIESTA VALIDAZIONE DA INBOX --
+      // Se l'admin arriva cliccando "Procedi alla Validazione" nella Inbox
+      const validateId = sessionStorage.getItem('mimesi_validate_id');
+      if (validateId) {
+          const jobToValidate = allJobs.find(j => String(j.id) === String(validateId));
+          if (jobToValidate) {
+              // Apri direttamente il wizard in modalità validazione (editingJob popolato)
+              setEditingJob(jobToValidate.fullData || jobToValidate);
+              // Opzionale: imposta il filtro su 'da_valutare' per coerenza visiva sotto
+              setFilter('da_valutare');
+          }
+          sessionStorage.removeItem('mimesi_validate_id');
       }
     };
     loadData();
-
-    // -- NUOVO: CONTROLLO FILTRO DALLA DASHBOARD --
-    const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
-    if (preferredFilter) {
-        setFilter(preferredFilter);
-        sessionStorage.removeItem('mimesi_filter_pref'); // Pulisci dopo l'uso
-    }
 
     // Refresh automatico
     const interval = setInterval(loadData, 2000);
@@ -180,7 +192,7 @@ export default function LavorazioniAdmin() {
                 {/* Wizard Component - NUOVA VERSIONE */}
                 <div className="bg-white/50 rounded-3xl">
                      <WizardRequestAdmin
-                        initialData={editingJob} // Se è null (isCreating), il wrapper attiva la modalità Creazione
+                        initialData={editingJob} 
                         onCancel={() => { setIsCreating(false); setEditingJob(null); }}
                         onSubmit={isCreating ? handleCreateSubmit : handleValidationSubmit}
                      />

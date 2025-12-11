@@ -12,9 +12,12 @@ export default function InboxDottore() {
   const user = useAuthStore(state => state.user);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [messages, setMessages] = useState([]);
+  
+  // Stati solo per la firma (usati solo se serve)
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
 
+  // --- CARICAMENTO DATI ---
   useEffect(() => {
     const loadMessages = () => {
        const stored = localStorage.getItem('mimesi_doctor_inbox');
@@ -22,17 +25,12 @@ export default function InboxDottore() {
          const parsedMsgs = JSON.parse(stored);
          setMessages(parsedMsgs);
 
-         // -- CONTROLLO ID MESSAGGIO DALLA DASHBOARD --
+         // Controllo redirect da Dashboard
          const targetId = sessionStorage.getItem('mimesi_msg_id');
          if (targetId) {
              const found = parsedMsgs.find(m => String(m.id) === String(targetId));
              if (found) {
-                 setSelectedMsg(found);
-                 if (!found.read) {
-                     const updated = parsedMsgs.map(m => m.id === found.id ? { ...m, read: true } : m);
-                     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
-                     setMessages(updated);
-                 }
+                 handleSelectMessage(found); // Uso la funzione handler per pulizia
              }
              sessionStorage.removeItem('mimesi_msg_id');
          }
@@ -43,7 +41,12 @@ export default function InboxDottore() {
     return () => clearInterval(interval);
   }, []);
 
+  // --- AZIONI ---
   const markAsRead = (msgId) => {
+    // Ottimizzazione: se è già letto non fare nulla (evita render inutili)
+    const msg = messages.find(m => m.id === msgId);
+    if (msg && msg.read) return;
+
     const updated = messages.map(m => m.id === msgId ? { ...m, read: true, unread: false } : m);
     setMessages(updated);
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(updated));
@@ -57,11 +60,10 @@ export default function InboxDottore() {
 
   const handleSelectMessage = (msg) => {
     setSelectedMsg(msg);
+    // Reset stati firma quando cambio messaggio
     setShowOtp(false);
     setOtpCode('');
-    if (!msg.read) {
-      markAsRead(msg.id);
-    }
+    markAsRead(msg.id);
   };
 
   const handleRequestOtp = () => {
@@ -75,15 +77,11 @@ export default function InboxDottore() {
       return;
     }
 
+    // Aggiorna stato lavorazione globale
     const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const updated = allLavorazioni.map(lav => {
       if (lav.id === selectedMsg.linkedJobId || lav.id === selectedMsg.fullData?.id) {
-        return {
-          ...lav,
-          stato: 'working',
-          progress: 20,
-          statusLabel: 'In Lavorazione'
-        };
+        return { ...lav, stato: 'working', progress: 20, statusLabel: 'In Lavorazione' };
       }
       return lav;
     });
@@ -101,6 +99,9 @@ export default function InboxDottore() {
     }
   };
 
+  // Helper per capire se serve il footer
+  const isSignatureRequest = selectedMsg?.type === 'request_signature';
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
@@ -115,12 +116,12 @@ export default function InboxDottore() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
         
-        {/* LISTA MESSAGGI (SX) */}
+        {/* COLONNA SX: LISTA MESSAGGI */}
         <Card className="lg:col-span-1 !p-0 overflow-hidden flex flex-col h-full">
            <div className="p-4 border-b border-neutral-100 bg-neutral-50">
               <div className="relative">
                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
-                 <input type="text" placeholder="Cerca messaggi..." className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-primary/20" />
+                 <input type="text" placeholder="Cerca..." className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-primary/20" />
               </div>
            </div>
            
@@ -129,16 +130,17 @@ export default function InboxDottore() {
                 <div 
                   key={msg.id} 
                   onClick={() => handleSelectMessage(msg)}
-                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} ${!msg.read ? 'bg-white' : 'bg-neutral-50/50'}`}
+                  className={`p-4 border-b border-neutral-50 cursor-pointer transition-colors hover:bg-neutral-50 
+                      ${selectedMsg?.id === msg.id ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'} 
+                      ${!msg.read ? 'bg-white' : 'bg-neutral-50/50'}`}
                 >
                    <div className="flex justify-between items-start mb-1">
                       <h4 className={`text-sm ${!msg.read ? 'font-bold text-neutral-800' : 'font-medium text-neutral-600'}`}>{msg.from}</h4>
                       <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
                    </div>
                    <p className={`text-xs mb-1 truncate ${!msg.read ? 'text-neutral-800 font-bold' : 'text-neutral-500'}`}>{msg.subject}</p>
-                   <p className="text-[11px] text-neutral-400 line-clamp-1">{msg.preview}</p>
                    
-                   <div className="mt-2 flex gap-2">
+                   <div className="mt-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
                         ${msg.type === 'request_signature' ? 'bg-orange-100 text-orange-700' : 
                           msg.type === 'order_summary' ? 'bg-indigo-100 text-indigo-700' : 
@@ -157,7 +159,7 @@ export default function InboxDottore() {
            </div>
         </Card>
 
-        {/* DETTAGLIO MESSAGGIO (DX) */}
+        {/* COLONNA DX: DETTAGLIO */}
         <Card className="lg:col-span-2 !p-0 overflow-hidden h-full relative">
            {selectedMsg ? (
              <motion.div 
@@ -165,6 +167,7 @@ export default function InboxDottore() {
                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                className="flex flex-col h-full"
              >
+                {/* HEADER MESSAGGIO */}
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-start">
                    <div>
                       <h2 className="text-xl font-bold text-neutral-800 mb-2">{selectedMsg.subject}</h2>
@@ -174,7 +177,7 @@ export default function InboxDottore() {
                          </div>
                          <div>
                             <p className="text-sm font-bold text-neutral-700">{selectedMsg.from}</p>
-                            <p className="text-xs text-neutral-400">Ricevuto • {new Date(selectedMsg.date).toLocaleString()}</p>
+                            <p className="text-xs text-neutral-400">{new Date(selectedMsg.date).toLocaleString()}</p>
                          </div>
                       </div>
                    </div>
@@ -184,10 +187,11 @@ export default function InboxDottore() {
                    </div>
                 </div>
 
+                {/* CORPO MESSAGGIO SCROLLABILE */}
                 <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
                    <p className="mb-4">{selectedMsg.preview}</p>
                    
-                   {/* CASO 1: RIEPILOGO ORDINE */}
+                   {/* CONTENUTO DINAMICO: RIEPILOGO */}
                    {selectedMsg.type === 'order_summary' && selectedMsg.fullData && (
                      <div className="mt-4">
                         <StepSummary 
@@ -203,8 +207,8 @@ export default function InboxDottore() {
                      </div>
                    )}
 
-                   {/* CASO 2: RICHIESTA FIRMA */}
-                   {selectedMsg.type === 'request_signature' && selectedMsg.quoteData && (
+                   {/* CONTENUTO DINAMICO: PREVENTIVO */}
+                   {isSignatureRequest && selectedMsg.quoteData && (
                      <div className="mt-6 space-y-4">
                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
                             <h4 className="font-bold text-primary mb-4 flex items-center gap-2">
@@ -243,40 +247,39 @@ export default function InboxDottore() {
                    )}
                 </div>
 
-                <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-                   {selectedMsg.type === 'request_signature' && !showOtp ? (
-                     <div className="flex gap-3 justify-end">
-                       <Button variant="ghost" className="text-error" onClick={handleReject}>Rifiuta Preventivo</Button>
-                       <Button variant="gradient" onClick={handleRequestOtp}>Firma Digitalmente</Button>
-                     </div>
-                   ) : selectedMsg.type === 'request_signature' && showOtp ? (
-                     <div className="space-y-3">
-                       <div className="bg-primary/5 p-4 rounded-xl border border-primary/20">
-                         <p className="text-sm text-neutral-700 mb-3">
-                           <CheckCircle className="inline mr-2 text-primary" size={16} />
-                           Codice OTP inviato alla tua email
-                         </p>
-                         <input 
-                           type="text" 
-                           placeholder="Inserisci codice a 6 cifre" 
-                           value={otpCode}
-                           onChange={(e) => setOtpCode(e.target.value)}
-                           maxLength={6}
-                           className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-xl font-mono tracking-widest"
-                         />
-                       </div>
-                       <div className="flex gap-3 justify-end">
-                         <Button variant="ghost" onClick={() => setShowOtp(false)}>Annulla</Button>
-                         <Button variant="success" onClick={handleConfirmSignature}>Conferma Firma</Button>
-                       </div>
-                     </div>
-                   ) : (
-                     <div className="flex gap-3 justify-end">
-                       <input type="text" placeholder="Scrivi una risposta..." className="flex-1 px-4 py-2 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
-                       <Button variant="gradient" className="px-6">Invia</Button>
-                     </div>
-                   )}
-                </div>
+                {/* FOOTER AZIONI - VISIBILE SOLO SE RICHIESTA FIRMA */}
+                {isSignatureRequest && (
+                    <div className="p-4 border-t border-neutral-100 bg-neutral-50">
+                        {!showOtp ? (
+                            <div className="flex gap-3 justify-end">
+                                <Button variant="ghost" className="text-error" onClick={handleReject}>Rifiuta Preventivo</Button>
+                                <Button variant="gradient" onClick={handleRequestOtp}>Firma Digitalmente</Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="bg-white p-3 rounded-xl border border-primary/30 shadow-sm flex items-center gap-3">
+                                    <CheckCircle className="text-primary" size={20} />
+                                    <div className="flex-1">
+                                        <p className="text-xs text-neutral-500 mb-1">Codice OTP inviato alla tua email</p>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Inserisci 6 cifre..." 
+                                            value={otpCode}
+                                            onChange={(e) => setOtpCode(e.target.value)}
+                                            maxLength={6}
+                                            className="w-full bg-transparent font-mono text-lg font-bold outline-none tracking-widest text-neutral-800 placeholder:text-neutral-300"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 justify-end">
+                                    <Button variant="ghost" onClick={() => setShowOtp(false)}>Annulla</Button>
+                                    <Button variant="success" onClick={handleConfirmSignature}>Conferma Firma</Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
              </motion.div>
            ) : (

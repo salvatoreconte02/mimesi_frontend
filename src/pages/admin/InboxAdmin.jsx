@@ -7,7 +7,8 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import StepSummary from '../../components/wizard/StepSummary'; 
 
-export default function InboxAdmin() {
+// MODIFICA: Accetta setPage dalle props
+export default function InboxAdmin({ setPage }) {
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [messages, setMessages] = useState([]);
 
@@ -19,7 +20,7 @@ export default function InboxAdmin() {
          const parsedMsgs = JSON.parse(stored);
          setMessages(parsedMsgs);
 
-         // -- NUOVO: CONTROLLO ID MESSAGGIO DALLA DASHBOARD --
+         // -- CONTROLLO ID MESSAGGIO DALLA DASHBOARD --
          const targetId = sessionStorage.getItem('mimesi_msg_id');
          if (targetId) {
              const found = parsedMsgs.find(m => String(m.id) === String(targetId));
@@ -41,14 +42,12 @@ export default function InboxAdmin() {
     return () => clearInterval(interval);
   }, []);
 
-  // Segna come letto
   const markAsRead = (msgId) => {
     const updated = messages.map(m => m.id === msgId ? { ...m, read: true, unread: false } : m);
     setMessages(updated);
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(updated));
   };
 
-  // Segna tutti come letti
   const markAllAsRead = () => {
     const updated = messages.map(m => ({ ...m, read: true, unread: false }));
     setMessages(updated);
@@ -62,8 +61,19 @@ export default function InboxAdmin() {
     }
   };
 
+  // MODIFICA: Logica di navigazione intelligente
   const handleOpenJob = () => {
-      alert("Vai nella sezione 'Lavorazioni' per validare questa richiesta (troverai il badge 'DA VALIDARE').");
+      // Recupera l'ID della lavorazione dai dati del messaggio
+      const jobId = selectedMsg.fullData?.id; 
+      
+      if (jobId) {
+          // Salva l'intento di validare questo ID
+          sessionStorage.setItem('mimesi_validate_id', jobId);
+          // Cambia pagina
+          setPage('lavorazioni');
+      } else {
+          alert("Impossibile trovare il riferimento alla lavorazione.");
+      }
   };
 
   return (
@@ -104,7 +114,6 @@ export default function InboxAdmin() {
                       <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
                    </div>
                    <p className={`text-xs mb-1 truncate ${!msg.read ? 'text-neutral-800 font-bold' : 'text-neutral-500'}`}>{msg.subject}</p>
-                   <p className="text-[11px] text-neutral-400 line-clamp-1">{msg.preview}</p>
                    
                    <div className="mt-2 flex gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full 
@@ -175,12 +184,10 @@ export default function InboxAdmin() {
                 {/* Footer Azioni */}
                 <div className="p-4 border-t border-neutral-100 bg-neutral-50 flex gap-3 justify-end">
                    {selectedMsg.type === 'request' ? (
-                     <>
-                       <Button variant="ghost" className="text-error">Rifiuta</Button>
-                       <Button variant="gradient" onClick={handleOpenJob}>
-                           Vai alla Lavorazione <ArrowRight size={18} className="ml-2"/>
-                       </Button>
-                     </>
+                     // MODIFICA: Rimosso tasto Rifiuta, solo azione positiva di avanzamento
+                     <Button variant="gradient" onClick={handleOpenJob}>
+                        Procedi alla Validazione <ArrowRight size={18} className="ml-2"/>
+                     </Button>
                    ) : (
                      <>
                        <input type="text" placeholder="Scrivi una risposta..." className="flex-1 px-4 py-2 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />

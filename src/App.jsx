@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useAuthStore from './store/authStore';
 import SidebarDottore from './components/layout/SidebarDottore';
 import SidebarAdmin from './components/layout/SidebarAdmin';
-import Sidebar from './components/layout/Sidebar'; // Aggiungo import per sicurezza se usato
+import Sidebar from './components/layout/Sidebar'; 
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 import { initializeMockData } from './mockData';
@@ -71,7 +71,8 @@ function App() {
 
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
-        if (user?.role === 'admin') return <InboxAdmin />;
+        // MODIFICA: Passo setPage anche a InboxAdmin per permettere la navigazione
+        if (user?.role === 'admin') return <InboxAdmin setPage={setPage} />;
     }
 
     if (page === 'dashboard') {
@@ -95,8 +96,6 @@ function App() {
     );
   };
 
-  // Seleziona la sidebar corretta in base al ruolo
-  // NOTA: Se non è admin o dottore, usiamo la Sidebar generica (utile per 'operatore')
   let SidebarComponent;
   if (user?.role === 'admin') SidebarComponent = SidebarAdmin;
   else if (user?.role === 'dottore') SidebarComponent = SidebarDottore;
@@ -104,7 +103,6 @@ function App() {
 
   return (
     <div className="bg-neutral-50 min-h-screen pl-64">
-      {/* MODIFICA: Passo 'page' qui sotto */}
       <SidebarComponent setPage={setPage} page={page} />
       <main className="min-h-screen">
         {renderContent()}
