@@ -24,10 +24,22 @@ export default function StepSummary({
   impressionParams, 
   onBack, 
   onSubmit,
-  readOnly = false // Default false
+  readOnly = false,
+  originalData // <--- PROP
 }) {
   
-  // Gestione fallback per totalSizeMB se files è undefined o vuoto
+  // Helper per controllare se un campo specifico è cambiato
+  // Ritorna una stringa di classi CSS se diverso
+  const getDiffStyle = (current, original, baseClass = "") => {
+     if(!originalData) return baseClass;
+     // Confronto stringhe per semplicità
+     if(String(current) !== String(original)) {
+         return `${baseClass} bg-orange-100 text-orange-900 border-orange-200 ring-2 ring-orange-200/50 rounded px-1 -mx-1 transition-all`;
+     }
+     return baseClass;
+  };
+
+  // Gestione fallback per totalSizeMB
   const totalSizeMB = files?.reduce((acc, file) => acc + (file.size || 0), 0) / 1024 / 1024 || 0;
 
   return (
@@ -63,12 +75,16 @@ export default function StepSummary({
                <div className="bg-neutral-50 p-4 rounded-xl text-sm space-y-2 border border-neutral-100">
                  <div className="flex justify-between border-b border-neutral-200 pb-2 mb-2">
                     <span className="text-neutral-500">Paziente</span>
-                    <span className="font-bold text-neutral-800">{formData.nome} {formData.cognome}</span>
+                    <span className={`font-bold text-neutral-800 ${getDiffStyle(formData.nome, originalData?.nome)}`}>
+                        {formData.nome} {formData.cognome}
+                    </span>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
                         <span className="text-[10px] text-neutral-400 uppercase font-bold">Codice</span>
-                        <p className="font-mono text-xs font-bold bg-white border rounded px-1 py-0.5 inline-block mt-0.5">{formData.codicePaziente}</p>
+                        <p className={`font-mono text-xs font-bold bg-white border rounded px-1 py-0.5 inline-block mt-0.5 ${getDiffStyle(formData.codicePaziente, originalData?.codicePaziente)}`}>
+                            {formData.codicePaziente}
+                        </p>
                     </div>
                     <div>
                         <span className="text-[10px] text-neutral-400 uppercase font-bold">Età / Sesso</span>
@@ -97,11 +113,11 @@ export default function StepSummary({
                  <Layers size={16}/> Specifiche Materiali
                </h4>
                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl">
+                  <div className={`bg-blue-50 border border-blue-100 p-3 rounded-xl ${getDiffStyle(technicalInfo.material, originalData?.technicalInfo?.material)}`}>
                       <span className="text-[10px] uppercase text-blue-400 font-bold block mb-1">Materiale</span>
                       <span className="text-sm font-bold text-blue-900 capitalize">{technicalInfo?.material?.replace('_', ' ') || 'N/A'}</span>
                   </div>
-                  <div className="bg-purple-50 border border-purple-100 p-3 rounded-xl">
+                  <div className={`bg-purple-50 border border-purple-100 p-3 rounded-xl ${getDiffStyle(technicalInfo.color, originalData?.technicalInfo?.color)}`}>
                       <span className="text-[10px] uppercase text-purple-400 font-bold block mb-1">Colore/Scala</span>
                       <span className="text-sm font-bold text-purple-900">{technicalInfo?.color || 'N/A'}</span>
                   </div>
@@ -179,37 +195,15 @@ export default function StepSummary({
                         </div>
                     </div>
 
-                    {/* Foto Opzionali */}
-                    {photos && photos.length > 0 && (
-                        <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-3">
-                             <span className="text-xs font-bold text-neutral-600 mb-2 block flex items-center gap-1">
-                                <ImageIcon size={12}/> Foto Paziente ({photos.length})
-                             </span>
-                             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                                {photos.map((photo, i) => (
-                                    <div key={i} className="w-12 h-12 rounded-lg border border-neutral-200 overflow-hidden shrink-0">
-                                        {isRealFile(photo) ? (
-                                            <img src={URL.createObjectURL(photo)} alt="preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
-                                                <ImageIcon size={20} className="text-neutral-400" />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                             </div>
-                        </div>
-                    )}
-
                     {/* Parametri Impronta */}
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                            <div className="bg-white p-2 rounded border border-neutral-200 shadow-sm">
-                            <span className="text-neutral-400 block text-[10px] uppercase font-bold">Rilevazione</span>
-                            <span className="font-medium text-neutral-700 capitalize">{impressionParams.material?.replace('_', ' ') || '-'}</span>
+                            <div className={`bg-white p-2 rounded border border-neutral-200 shadow-sm ${getDiffStyle(impressionParams.material, originalData?.impressionParams?.material)}`}>
+                                <span className="text-neutral-400 block text-[10px] uppercase font-bold">Rilevazione</span>
+                                <span className="font-medium text-neutral-700 capitalize">{impressionParams.material?.replace('_', ' ') || '-'}</span>
                             </div>
-                            <div className="bg-white p-2 rounded border border-neutral-200 shadow-sm">
-                            <span className="text-neutral-400 block text-[10px] uppercase font-bold">Disinfezione</span>
-                            <span className="font-medium text-neutral-700 capitalize">{impressionParams.disinfection?.replace('_', ' ') || '-'}</span>
+                            <div className={`bg-white p-2 rounded border border-neutral-200 shadow-sm ${getDiffStyle(impressionParams.disinfection, originalData?.impressionParams?.disinfection)}`}>
+                                <span className="text-neutral-400 block text-[10px] uppercase font-bold">Disinfezione</span>
+                                <span className="font-medium text-neutral-700 capitalize">{impressionParams.disinfection?.replace('_', ' ') || '-'}</span>
                             </div>
                     </div>
                 </div>
@@ -223,7 +217,7 @@ export default function StepSummary({
                
                <div className="space-y-3">
                    {/* Data Consegna Principale */}
-                   <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex justify-between items-center">
+                   <div className={`bg-green-50 border border-green-200 p-3 rounded-xl flex justify-between items-center ${getDiffStyle(dates.delivery, originalData?.dates?.delivery)}`}>
                        <div>
                            <span className="block text-[10px] text-green-600 font-bold uppercase tracking-wider">Consegna Finale</span>
                            <span className="font-bold text-green-800 text-lg">
@@ -240,7 +234,7 @@ export default function StepSummary({
                                const dateVal = dates[`tryIn${num}`];
                                if (!dateVal) return null;
                                return (
-                                   <div key={num} className="bg-white border border-dashed border-neutral-300 p-2 rounded-xl text-center">
+                                   <div key={num} className={`bg-white border border-dashed border-neutral-300 p-2 rounded-xl text-center ${getDiffStyle(dateVal, originalData?.dates?.[`tryIn${num}`])}`}>
                                        <span className="block text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Prova {num}</span>
                                        <span className="font-medium text-neutral-700 text-xs">
                                            {new Date(dateVal).toLocaleDateString()}

@@ -9,12 +9,32 @@ export default function StepElements({
   technicalInfo, setTechnicalInfo, 
   dates, setDates, 
   onBack, onNext,
-  isAdmin 
+  isAdmin,
+  originalData
 }) {
   const [selectedTeeth, setSelectedTeeth] = useState([]);
 
-  // --- LOGICA GESTIONE DENTI ---
+  // --- HELPER PER IL DIFF VISIVO ---
+  // Confronta il valore corrente con quello originale e applica lo stile arancione se diverso
+  const getDiffClass = (objName, fieldName) => {
+    if (!isAdmin || !originalData || !originalData[objName]) return 'border-blue-200 bg-white';
+    
+    // Recupera il valore attuale
+    const currentVal = fieldName ? (objName === 'dates' ? dates[fieldName] : technicalInfo[fieldName]) : null;
+    // Recupera il valore originale
+    const originalVal = originalData[objName][fieldName];
 
+    // Confronto lasco (String) per sicurezza su date e numeri
+    if (String(currentVal) !== String(originalVal)) {
+        return 'border-orange-300 bg-orange-50 ring-1 ring-orange-200 text-orange-900 font-bold';
+    }
+    return 'border-blue-200 bg-white';
+  };
+
+  // Check specifico per l'array degli elementi (se è cambiata la struttura o il contenuto)
+  const elementsChanged = isAdmin && originalData && JSON.stringify(configuredElements) !== JSON.stringify(originalData.elements);
+
+  // --- LOGICA GESTIONE DENTI ---
   const toggleTooth = (toothId) => {
     const isAlreadyConfigured = configuredElements.some(group => group.teeth.includes(toothId));
     
@@ -82,7 +102,7 @@ export default function StepElements({
                 <select 
                     value={technicalInfo.material} 
                     onChange={(e) => setTechnicalInfo({...technicalInfo, material: e.target.value})} 
-                    className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                    className={`w-full p-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm border ${getDiffClass('technicalInfo', 'material')}`}
                 >
                     <option value="zirconio">Zirconio</option>
                     <option value="disilicato">Disilicato di Litio</option>
@@ -96,7 +116,7 @@ export default function StepElements({
                 <select 
                     value={technicalInfo.color} 
                     onChange={(e) => setTechnicalInfo({...technicalInfo, color: e.target.value})} 
-                    className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                    className={`w-full p-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm border ${getDiffClass('technicalInfo', 'color')}`}
                 >
                     <optgroup label="Scala Vita A"><option>A1</option><option>A2</option><option>A3</option><option>A3.5</option><option>A4</option></optgroup>
                     <optgroup label="Scala Vita B"><option>B1</option><option>B2</option><option>B3</option><option>B4</option></optgroup>
@@ -109,7 +129,7 @@ export default function StepElements({
         <div>
            <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Descrizione e Specifica (Opzionale)</label>
            <textarea 
-             className="w-full p-3 text-sm border border-blue-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500/20 placeholder:text-neutral-400 resize-y min-h-[80px] shadow-sm" 
+             className={`w-full p-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 placeholder:text-neutral-400 resize-y min-h-[80px] shadow-sm border ${getDiffClass('technicalInfo', 'description')}`} 
              placeholder="Es. Corona avvitata su impianto, spalla in ceramica, dettagli anatomici particolari..." 
              value={technicalInfo.description} 
              onChange={(e) => setTechnicalInfo({...technicalInfo, description: e.target.value})}
@@ -119,8 +139,14 @@ export default function StepElements({
       </div>
 
       {/* 2. AREA DI LAVORO: ODONTOGRAMMA E CONTROLLI */}
-      <div className="space-y-6">
+      <div className={`space-y-6 p-4 rounded-3xl border-2 transition-colors ${elementsChanged ? 'border-orange-300 bg-orange-50/30' : 'border-transparent'}`}>
           
+          {elementsChanged && (
+             <div className="text-xs text-orange-700 font-bold mb-2 flex items-center gap-2 p-2 bg-orange-100 rounded-lg border border-orange-200">
+                <AlertTriangle size={14}/> Configurazione elementi modificata rispetto all'originale
+             </div>
+          )}
+
           {/* A. ODONTOGRAMMA */}
           <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-purple-400 opacity-50"></div>
@@ -133,10 +159,10 @@ export default function StepElements({
             
           </div>
 
-          {/* B. LOGICA GRUPPI (Griglia Affiancata con altezza fissa uguale) */}
+          {/* B. LOGICA GRUPPI */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Box 1: Azione Aggiungi - Altezza Fissa */}
+            {/* Box 1: Azione Aggiungi */}
             <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl shadow-sm flex flex-col h-[280px]">
                 <div className="flex-1">
                     <div className="flex justify-between items-center mb-4">
@@ -154,7 +180,6 @@ export default function StepElements({
                     </ul>
                 </div>
 
-                {/* BOTTONE AGGIUSTATO */}
                 <button 
                     onClick={handleAddGroup}
                     disabled={selectedTeeth.length === 0}
@@ -170,7 +195,7 @@ export default function StepElements({
                 </button>
             </div>
 
-            {/* Box 2: Lista Elementi - Altezza Fissa Uguale */}
+            {/* Box 2: Lista Elementi */}
             <div className="bg-white border border-neutral-200 rounded-3xl p-6 h-[280px] flex flex-col shadow-sm">
                 <h5 className="font-bold text-neutral-800 mb-4 flex items-center justify-between shrink-0">
                     <span>Elementi nel Piano</span>
@@ -237,7 +262,9 @@ export default function StepElements({
                <label className="text-xs font-bold text-primary mb-1.5 block uppercase tracking-wide">Data Consegna *</label>
                <input 
                  type="date" 
-                 className={`w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all ${!dates.delivery ? 'border-primary/30' : 'border-primary font-bold text-primary'}`}
+                 className={`w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all 
+                    ${getDiffClass('dates', 'delivery')} 
+                    ${!dates.delivery && !originalData ? 'border-primary/30' : ''}`}
                  value={dates.delivery} 
                  onChange={e => setDates({...dates, delivery: e.target.value})} 
                />
@@ -247,7 +274,7 @@ export default function StepElements({
                  <label className="text-xs font-bold text-neutral-400 mb-1.5 block uppercase tracking-wide">Prova {i}</label>
                  <input 
                    type="date" 
-                   className="w-full p-3 border border-neutral-200 rounded-xl bg-white text-sm text-neutral-600 outline-none focus:ring-2 focus:ring-neutral-200 shadow-sm transition-all hover:border-neutral-300"
+                   className={`w-full p-3 border rounded-xl bg-white text-sm text-neutral-600 outline-none focus:ring-2 focus:ring-neutral-200 shadow-sm transition-all hover:border-neutral-300 ${getDiffClass('dates', `tryIn${i}`)}`}
                    value={dates[`tryIn${i}`]} 
                    onChange={e => setDates({...dates, [`tryIn${i}`]: e.target.value})} 
                  />

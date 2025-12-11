@@ -7,13 +7,8 @@ import FileRenderer from '../ui/FileRenderer';
 /* eslint-enable no-unused-vars */
 
 // ===== HELPER FUNCTION =====
-// Controlla se un file è un oggetto File/Blob reale o solo metadati
-// Usa duck-typing invece di instanceof per evitare errori di contesto
 const isRealFile = (file) => {
   if (!file) return false;
-  
-  // Un File/Blob reale ha questi metodi/proprietà
-  // Un oggetto JSON di metadati non li ha
   return (
     typeof file.slice === 'function' && 
     typeof file.size === 'number' && 
@@ -26,30 +21,65 @@ export default function StepFiles({
   files, setFiles, 
   photos, setPhotos, 
   impressionParams, setImpressionParams, 
-  onBack, onNext 
+  onBack, onNext,
+  isAdmin,
+  originalData
 }) {
   const fileInputRef = useRef(null);
   const photoInputRef = useRef(null);
-  
-  // Stato per la modale di anteprima
   const [previewFile, setPreviewFile] = useState(null);
+
+  // --- HELPER DIFF ---
+  const getParamDiffClass = (paramKey) => {
+      if (!isAdmin || !originalData || !originalData.impressionParams) return 'border-neutral-200';
+      if (impressionParams[paramKey] !== originalData.impressionParams[paramKey]) {
+          return 'border-orange-300 bg-orange-50 ring-1 ring-orange-200 text-orange-900 font-medium';
+      }
+      return 'border-neutral-200';
+  };
+
+  // --- LOGICA DI CONFRONTO AVANZATA (FILES & FOTO) ---
+  const hasFilesChanged = () => {
+      if (!isAdmin || !originalData) return false;
+      
+      const originalFiles = originalData.filesMetadata || [];
+      // Se le lunghezze sono diverse, è cambiato sicuramente
+      if (files.length !== originalFiles.length) return true;
+
+      // Se le lunghezze sono uguali, controllo i nomi uno per uno
+      // Nota: questo assume che l'ordine conti, oppure puoi usare .sort() se l'ordine non importa
+      const currentNames = files.map(f => f.name).sort();
+      const originalNames = originalFiles.map(f => f.name).sort();
+
+      return JSON.stringify(currentNames) !== JSON.stringify(originalNames);
+  };
+
+  const hasPhotosChanged = () => {
+      if (!isAdmin || !originalData) return false;
+      
+      const originalPhotos = originalData.photosMetadata || [];
+      if (photos.length !== originalPhotos.length) return true;
+
+      const currentNames = photos.map(p => p.name).sort();
+      const originalNames = originalPhotos.map(p => p.name).sort();
+
+      return JSON.stringify(currentNames) !== JSON.stringify(originalNames);
+  };
+
+  const filesChanged = hasFilesChanged();
+  const photosChanged = hasPhotosChanged();
+
 
   // --- GESTIONE FILE (STL/PLY/OBJ) ---
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
-      
-      // Validazione estensione
       const validExtensions = ['stl', 'ply', 'obj'];
       const validFiles = newFiles.filter(file => {
           const ext = file.name.split('.').pop().toLowerCase();
           return validExtensions.includes(ext);
       });
-      
-      if (validFiles.length !== newFiles.length) {
-          alert("Alcuni file non sono stati caricati perché non sono formati 3D supportati (.stl, .ply, .obj).");
-      }
-
+      if (validFiles.length !== newFiles.length) alert("Alcuni file non sono validi (.stl, .ply, .obj).");
       setFiles((prev) => [...prev, ...validFiles]);
     }
   };
@@ -77,7 +107,9 @@ export default function StepFiles({
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
         
         {/* SEZIONE 1: UPLOAD FILE SCANSIONE (OBBLIGATORIO) */}
-        <div className="space-y-4">
+        <div className={`space-y-4 p-4 rounded-3xl border-2 transition-colors ${filesChanged ? 'border-orange-300 bg-orange-50/30' : 'border-transparent'}`}>
+            {filesChanged && <p className="text-xs text-orange-700 font-bold mb-2">Lista file modificata rispetto all'originale</p>}
+
           <div className="flex items-center justify-between">
               <h4 className="font-bold text-neutral-800 flex items-center gap-2">
                   <File className="text-primary" size={20}/> File Scansione (STL/PLY/OBJ) *
@@ -88,12 +120,8 @@ export default function StepFiles({
           </div>
 
           <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept=".stl,.ply,.obj" 
-              multiple 
-              onChange={handleFileChange} 
+              type="file" ref={fileInputRef} className="hidden" 
+              accept=".stl,.ply,.obj" multiple onChange={handleFileChange} 
           />
 
           <div 
@@ -135,25 +163,15 @@ export default function StepFiles({
                               </div>
                               
                               <div className="flex gap-2">
-                                  {/* TASTO ANTEPRIMA 3D - Solo se è un file reale */}
                                   {isReal && (
-                                      <button 
-                                        type="button"
-                                        onClick={() => setPreviewFile(file)}
+                                      <button type="button" onClick={() => setPreviewFile(file)}
                                         className="p-2 bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors flex items-center gap-2 group"
-                                        title="Anteprima 3D"
                                       >
                                           <Eye size={18} />
-                                          <span className="text-xs font-bold hidden group-hover:inline">Vedi 3D</span>
                                       </button>
                                   )}
-
-                                  {/* TASTO RIMUOVI */}
-                                  <button 
-                                    type="button"
-                                    onClick={() => removeFile(i)} 
+                                  <button type="button" onClick={() => removeFile(i)} 
                                     className="p-2 bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors"
-                                    title="Rimuovi file"
                                   >
                                       <X size={18} />
                                   </button>
@@ -174,7 +192,7 @@ export default function StepFiles({
               <div>
                   <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Rilevate in</label>
                   <select 
-                      className="w-full p-3 text-sm border border-neutral-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                      className={`w-full p-3 text-sm border rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer ${getParamDiffClass('material')}`}
                       value={impressionParams.material}
                       onChange={(e) => setImpressionParams({...impressionParams, material: e.target.value})}
                   >
@@ -190,7 +208,7 @@ export default function StepFiles({
               <div>
                   <label className="text-xs font-bold text-neutral-500 mb-1.5 block uppercase tracking-wide">Disinfettate in</label>
                   <select 
-                      className="w-full p-3 text-sm border border-neutral-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                      className={`w-full p-3 text-sm border rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer ${getParamDiffClass('disinfection')}`}
                       value={impressionParams.disinfection}
                       onChange={(e) => setImpressionParams({...impressionParams, disinfection: e.target.value})}
                   >
@@ -207,19 +225,14 @@ export default function StepFiles({
         </div>
 
         {/* SEZIONE 3: FOTO ACCESSORIE (OPZIONALI) */}
-        <div className="space-y-4">
+        <div className={`space-y-4 p-4 rounded-3xl border-2 transition-colors ${photosChanged ? 'border-orange-300 bg-orange-50/30' : 'border-transparent'}`}>
+            {photosChanged && <p className="text-xs text-orange-700 font-bold mb-2">Lista foto modificata rispetto all'originale</p>}
+          
           <h4 className="font-bold text-neutral-800 flex items-center gap-2 text-sm">
               <ImageIcon className="text-neutral-400" size={18}/> Allegati Fotografici <span className="text-neutral-400 font-normal ml-1">(Opzionale)</span>
           </h4>
           
-          <input 
-              type="file" 
-              ref={photoInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              multiple 
-              onChange={handlePhotoChange} 
-          />
+          <input type="file" ref={photoInputRef} className="hidden" accept="image/*" multiple onChange={handlePhotoChange} />
 
           <div className="flex gap-4">
               <div 
@@ -233,18 +246,11 @@ export default function StepFiles({
               <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
                   {photos.map((photo, i) => {
                       const isReal = isRealFile(photo);
-                      
                       return (
                           <div key={`photo-${photo.name || 'photo'}-${i}`} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-neutral-200 shadow-sm shrink-0 group">
-                              {/* SE È UN FILE REALE: mostra l'immagine vera */}
                               {isReal ? (
-                                  <img 
-                                      src={URL.createObjectURL(photo)} 
-                                      alt={`preview-${i}`}
-                                      className="w-full h-full object-cover"
-                                  />
+                                  <img src={URL.createObjectURL(photo)} alt={`preview-${i}`} className="w-full h-full object-cover"/>
                               ) : (
-                                  /* SE SONO METADATI: mostra un placeholder con icona */
                                   <div className="w-full h-full bg-neutral-100 flex flex-col items-center justify-center">
                                       <ImageIcon size={32} className="text-neutral-400 mb-1" />
                                       <span className="text-[8px] text-neutral-400 font-mono px-1 text-center truncate w-full">
@@ -252,10 +258,7 @@ export default function StepFiles({
                                       </span>
                                   </div>
                               )}
-                              
-                              <button 
-                                  type="button"
-                                  onClick={() => removePhoto(i)}
+                              <button type="button" onClick={() => removePhoto(i)}
                                   className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                               >
                                   <X size={12} />
@@ -263,11 +266,6 @@ export default function StepFiles({
                           </div>
                       );
                   })}
-                  {photos.length === 0 && (
-                      <div className="flex items-center text-xs text-neutral-400 italic px-2">
-                          Nessuna foto allegata
-                      </div>
-                  )}
               </div>
           </div>
         </div>
@@ -283,39 +281,28 @@ export default function StepFiles({
         </div>
       </motion.div>
 
-      {/* MODALE ANTEPRIMA 3D - Solo se il file è reale */}
+      {/* MODALE ANTEPRIMA 3D */}
       <AnimatePresence>
         {previewFile && isRealFile(previewFile) && (
           <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 md:p-8 backdrop-blur-sm"
             onClick={() => setPreviewFile(null)}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} 
-              animate={{ scale: 1, y: 0 }} 
-              exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               className="bg-neutral-900 w-full max-w-5xl h-[85vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-white/10"
               onClick={(e) => e.stopPropagation()}
             >
-                {/* Header Modale */}
                 <div className="flex justify-between items-center p-4 border-b border-white/10 bg-neutral-800">
                     <h3 className="font-bold text-lg text-white flex items-center gap-2">
                         <Box className="text-primary"/> 
                         <span className="truncate max-w-[300px]">{previewFile.name}</span>
                     </h3>
-                    <button 
-                        type="button"
-                        onClick={() => setPreviewFile(null)} 
-                        className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
-                    >
+                    <button type="button" onClick={() => setPreviewFile(null)} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full">
                         <X size={20} />
                     </button>
                 </div>
-
-                {/* VISUALIZZATORE 3D */}
                 <div className="flex-1 relative">
                     <FileRenderer file={previewFile} />
                 </div>

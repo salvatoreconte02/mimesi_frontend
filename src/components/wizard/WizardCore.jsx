@@ -30,6 +30,7 @@ export default function WizardCore({
   const currentStepLabel = stepsList[step - 1];
 
   // --- STATO ---
+  // Cloniamo i dati iniziali per averli come riferimento "originale" per il confronto (Diff)
   const safeInitialData = initialData ? JSON.parse(JSON.stringify(initialData)) : null;
 
   const getInitialState = (key, defaultVal) => {
@@ -103,7 +104,7 @@ export default function WizardCore({
       impressionParams,
       filesMetadata, 
       photosMetadata,
-      quote: showQuoteStep ? quote : null, // Salva quote solo se lo step era attivo
+      quote: showQuoteStep ? quote : null, 
       adminAction: safeActionType,
       status: safeActionType === 'send_to_doctor' ? 'waiting_signature' : 'approved',
       timestamp: new Date().toISOString()
@@ -160,7 +161,7 @@ export default function WizardCore({
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6 text-blue-800 text-sm flex justify-between items-center">
                 <div>
                     <strong>Revisione Richiesta {safeInitialData.id}</strong>
-                    <p className="text-xs opacity-70">Le modifiche rispetto ai dati originali verranno evidenziate.</p>
+                    <p className="text-xs opacity-70">Le modifiche rispetto ai dati originali verranno evidenziate in arancione.</p>
                 </div>
             </div>
         )}
@@ -172,41 +173,45 @@ export default function WizardCore({
                     formData={formData} setFormData={setFormData} 
                     onNext={next} 
                     isAdmin={isAdmin}
-                    readOnlyDoctorData={readOnlyDoctorData} // PROP CONFIGURABILE
+                    readOnlyDoctorData={readOnlyDoctorData} 
                     originalData={safeInitialData} 
                 />
             )}
             
             {step === 2 && (
                 <StepElements 
-                key="step2"
-                configuredElements={configuredElements} setConfiguredElements={setConfiguredElements}
-                technicalInfo={technicalInfo} setTechnicalInfo={setTechnicalInfo} 
-                dates={dates} setDates={setDates}
-                onBack={back} onNext={next}
-                isAdmin={isAdmin}
-            />
+                    key="step2"
+                    configuredElements={configuredElements} setConfiguredElements={setConfiguredElements}
+                    technicalInfo={technicalInfo} setTechnicalInfo={setTechnicalInfo} 
+                    dates={dates} setDates={setDates}
+                    onBack={back} onNext={next}
+                    isAdmin={isAdmin}
+                    originalData={safeInitialData} // PASSATO
+                />
             )}
 
             {step === 3 && (
-            <StepFiles 
-                key="step3" 
-                files={files} setFiles={setFiles}
-                photos={photos} setPhotos={setPhotos}
-                impressionParams={impressionParams} setImpressionParams={setImpressionParams}
-                onBack={back} onNext={next} 
-            />
+                <StepFiles 
+                    key="step3" 
+                    files={files} setFiles={setFiles}
+                    photos={photos} setPhotos={setPhotos}
+                    impressionParams={impressionParams} setImpressionParams={setImpressionParams}
+                    onBack={back} onNext={next} 
+                    isAdmin={isAdmin} // PASSATO
+                    originalData={safeInitialData} // PASSATO
+                />
             )}
 
             {step === 4 && (
-            <StepSummary 
-                key="step4"
-                formData={formData} configuredElements={configuredElements}
-                technicalInfo={technicalInfo} dates={dates}
-                files={files} photos={photos} impressionParams={impressionParams}
-                onBack={back}
-                onSubmit={showQuoteStep ? next : handleFinalSubmit} 
-            />
+                <StepSummary 
+                    key="step4"
+                    formData={formData} configuredElements={configuredElements}
+                    technicalInfo={technicalInfo} dates={dates}
+                    files={files} photos={photos} impressionParams={impressionParams}
+                    onBack={back}
+                    onSubmit={showQuoteStep ? next : handleFinalSubmit} 
+                    originalData={safeInitialData} // PASSATO
+                />
             )}
 
             {showQuoteStep && step === 5 && (
