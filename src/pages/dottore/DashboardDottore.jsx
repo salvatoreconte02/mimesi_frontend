@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Activity, FileSignature, Clock, ChevronRight, 
-  MessageSquare 
+  MessageSquare, Plus // Aggiungi Plus
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button'; // Import Button
 import useAuthStore from '../../store/authStore';
 
 export default function DashboardDottore({ setPage }) {
@@ -31,16 +32,14 @@ export default function DashboardDottore({ setPage }) {
       evaluation: myJobs.filter(j => j.stato === 'in_evaluation').length
     });
 
-    // Prendi i primi 3 lavori più recenti
     setRecentJobs(myJobs.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 3));
 
     // 2. Carica Messaggi Inbox
     const inbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
-    setRecentMessages(inbox.slice(0, 4)); // Mostra ultimi 4
+    setRecentMessages(inbox.slice(0, 4));
 
   }, [user]);
 
-  // --- FUNZIONE DI NAVIGAZIONE SMART ---
   const navigateTo = (page, paramKey, paramValue) => {
       if (paramKey && paramValue) {
           sessionStorage.setItem(paramKey, paramValue);
@@ -48,22 +47,32 @@ export default function DashboardDottore({ setPage }) {
       setPage(page);
   };
 
+  // NUOVA FUNZIONE PER GESTIRE IL CLICK
+  const handleNewPrescription = () => {
+    // Salviamo un flag in sessione per dire alla pagina Lavorazioni di aprire il wizard
+    sessionStorage.setItem('mimesi_open_wizard', 'true');
+    setPage('lavorazioni');
+  };
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen space-y-8">
       
-      {/* HEADER DI BENVENUTO */}
-      <div className="flex justify-between items-end">
+      {/* HEADER DI BENVENUTO MODIFICATO */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Bentornato, Dr. {user?.cognome}</h1>
           <p className="text-neutral-500 mt-1">Ecco il riepilogo delle attività del tuo studio.</p>
         </div>
-        <div className="text-right hidden md:block">
-          <p className="text-sm font-bold text-primary">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-          <p className="text-xs text-neutral-400">Ultimo accesso: Oggi, 09:30</p>
+        
+        {/* SOSTITUITO DATA CON BOTTONE */}
+        <div className="shrink-0">
+          <Button onClick={handleNewPrescription} className="shadow-lg shadow-primary/30">
+             <Plus size={20} className="mr-2" /> Nuova Prescrizione
+          </Button>
         </div>
       </div>
 
-      {/* STATISTICHE (LINK FUNZIONANTI) */}
+      {/* STATISTICHE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* CARD 1: IN LAVORAZIONE */}
@@ -126,7 +135,7 @@ export default function DashboardDottore({ setPage }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* COLONNA SX: LAVORAZIONI RECENTI (Occupazione 2/3) */}
+        {/* COLONNA SX: LAVORAZIONI RECENTI */}
         <div className="lg:col-span-2 space-y-6">
             <Card className="!p-0 overflow-hidden">
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
@@ -178,7 +187,7 @@ export default function DashboardDottore({ setPage }) {
             </Card>
         </div>
 
-        {/* COLONNA DX: MESSAGGI & NOTIFICHE (Occupazione 1/3) */}
+        {/* COLONNA DX: MESSAGGI & NOTIFICHE */}
         <div className="space-y-6">
             <Card className="!p-0 h-full flex flex-col">
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
@@ -208,7 +217,6 @@ export default function DashboardDottore({ setPage }) {
                                     </p>
                                     
                                     <div className="flex gap-2 mt-2">
-                                        {/* LOGICA BADGE */}
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold tracking-wider
                                             ${msg.type === 'request_signature' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
                                               msg.type === 'order_summary' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :

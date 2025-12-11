@@ -15,7 +15,6 @@ export default function LavorazioniDottore() {
   const [search, setSearch] = useState('');
   const [lavorazioni, setLavorazioni] = useState([]);
   
-  // Toggle per mostrare il Wizard (false = Lista, true = Wizard Full Page)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Carica lavorazioni
@@ -34,11 +33,18 @@ export default function LavorazioniDottore() {
     };
     loadData();
 
-    // -- CONTROLLO FILTRO DALLA DASHBOARD --
+    // CONTROLLO FILTRO DALLA DASHBOARD
     const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
     if (preferredFilter) {
         setFilter(preferredFilter);
         sessionStorage.removeItem('mimesi_filter_pref');
+    }
+
+    // NUOVO: CONTROLLO APERTURA WIZARD DALLA DASHBOARD
+    const shouldOpenWizard = sessionStorage.getItem('mimesi_open_wizard');
+    if (shouldOpenWizard) {
+        setIsWizardOpen(true);
+        sessionStorage.removeItem('mimesi_open_wizard');
     }
 
     const interval = setInterval(loadData, 2000);
@@ -101,7 +107,6 @@ export default function LavorazioniDottore() {
     alert('Richiesta inviata con successo! Troverai il riepilogo nella tua Inbox.');
   };
 
-  // Logica filtro + Fix Crash
   const filteredList = lavorazioni.filter(item => {
     const pazienteSafe = String(item.paziente || '').toLowerCase();
     const idSafe = String(item.id || '').toLowerCase();
@@ -117,7 +122,6 @@ export default function LavorazioniDottore() {
     return matchesSearch;
   });
 
-  // RENDERING PRINCIPALE: O LISTA O WIZARD (FULL PAGE)
   if (isWizardOpen) {
     return (
       <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
