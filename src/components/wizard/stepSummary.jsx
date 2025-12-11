@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FileText, Send, User, Calendar, ShieldAlert, Layers, Paperclip, Activity, Image as ImageIcon, Box, Info } from 'lucide-react';
+import { FileText, Send, User, Calendar, ShieldAlert, Layers, Paperclip, Activity, Box, Info } from 'lucide-react';
 import Button from '../ui/Button';
 import { GROUP_COLORS } from '../dental/VisualOdontogram';
 
@@ -25,14 +25,15 @@ export default function StepSummary({
   onBack, 
   onSubmit,
   readOnly = false,
-  originalData // <--- PROP
+  originalData
 }) {
   
+  // CALCOLO TOTALE ELEMENTI (somma di tutti i denti in tutti i gruppi)
+  const totalElements = configuredElements.reduce((acc, group) => acc + group.teeth.length, 0);
+
   // Helper per controllare se un campo specifico è cambiato
-  // Ritorna una stringa di classi CSS se diverso
   const getDiffStyle = (current, original, baseClass = "") => {
      if(!originalData) return baseClass;
-     // Confronto stringhe per semplicità
      if(String(current) !== String(original)) {
          return `${baseClass} bg-orange-100 text-orange-900 border-orange-200 ring-2 ring-orange-200/50 rounded px-1 -mx-1 transition-all`;
      }
@@ -133,7 +134,16 @@ export default function StepSummary({
           {/* CELLA 2 (DX, Riga 1): Elementi Protesici */}
           <div className="flex flex-col">
                 <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-3 pb-1 border-b border-primary/10">
-                   <ShieldAlert size={16}/> Configurazione Elementi ({configuredElements.length})
+                   <ShieldAlert size={16}/> Configurazione Elementi
+                   {/* MOSTRA TOTALE ELEMENTI */}
+                   <span className="ml-auto flex items-center gap-2">
+                       <span className="bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded text-xs">
+                           {configuredElements.length} {configuredElements.length === 1 ? 'gruppo' : 'gruppi'}
+                       </span>
+                       <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-bold">
+                           {totalElements} {totalElements === 1 ? 'elemento' : 'elementi'}
+                       </span>
+                   </span>
                 </h4>
                 
                 <div className="bg-neutral-50 rounded-xl p-2 border border-neutral-200 min-h-[220px] max-h-[300px] overflow-y-auto custom-scrollbar space-y-2">
@@ -155,7 +165,7 @@ export default function StepSummary({
                             <div className="flex-1">
                               <div className="flex justify-between items-start">
                                 <span className="font-bold text-sm text-neutral-800">
-                                  {el.isBridge ? 'Ponte' : 'Elemento Singolo'} 
+                                  {el.isBridge ? `Ponte (${el.teeth.length} elem.)` : 'Elemento Singolo'} 
                                 </span>
                                 <span className="font-mono text-xs font-bold bg-neutral-100 px-2 py-0.5 rounded text-neutral-600 border border-neutral-200">
                                     {el.teeth.join('-')}
@@ -172,7 +182,7 @@ export default function StepSummary({
                 </div>
           </div>
 
-          {/* CELLA 3 (SX, Riga 2): Allegati - ALLINEATA AL TOP */}
+          {/* CELLA 3 (SX, Riga 2): Allegati */}
           <div>
                 <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-3 pb-1 border-b border-primary/10">
                     <Paperclip size={16}/> Allegati & Impronta
@@ -209,7 +219,7 @@ export default function StepSummary({
                 </div>
           </div>
 
-          {/* CELLA 4 (DX, Riga 2): Date - ALLINEATA AL TOP */}
+          {/* CELLA 4 (DX, Riga 2): Date */}
           <div>
                <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-3 pb-1 border-b border-primary/10">
                  <Calendar size={16}/> Pianificazione Temporale
@@ -261,7 +271,7 @@ export default function StepSummary({
             <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex gap-3 items-start">
                 <Info size={20} className="text-yellow-600 mt-0.5 shrink-0" />
                 <p className="text-sm text-yellow-800">
-                Confermando, la richiesta passerà allo stato Calcolo del Preventivo.
+                Confermando, la richiesta verrà inviata all'Amministrazione per la validazione. Riceverai una notifica quando il preventivo sarà pronto.
                 </p>
             </div>
 

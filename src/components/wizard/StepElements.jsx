@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Info, AlertTriangle, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, Info, AlertTriangle, Calendar, ArrowRight } from 'lucide-react';
 import Button from '../ui/Button';
 import VisualOdontogram, { checkAdjacency, GROUP_COLORS } from '../dental/VisualOdontogram';
 
@@ -14,24 +14,22 @@ export default function StepElements({
 }) {
   const [selectedTeeth, setSelectedTeeth] = useState([]);
 
+  // CALCOLO TOTALE ELEMENTI (somma di tutti i denti in tutti i gruppi)
+  const totalElements = configuredElements.reduce((acc, group) => acc + group.teeth.length, 0);
+
   // --- HELPER PER IL DIFF VISIVO ---
-  // Confronta il valore corrente con quello originale e applica lo stile arancione se diverso
   const getDiffClass = (objName, fieldName) => {
     if (!isAdmin || !originalData || !originalData[objName]) return 'border-blue-200 bg-white';
     
-    // Recupera il valore attuale
     const currentVal = fieldName ? (objName === 'dates' ? dates[fieldName] : technicalInfo[fieldName]) : null;
-    // Recupera il valore originale
     const originalVal = originalData[objName][fieldName];
 
-    // Confronto lasco (String) per sicurezza su date e numeri
     if (String(currentVal) !== String(originalVal)) {
         return 'border-orange-300 bg-orange-50 ring-1 ring-orange-200 text-orange-900 font-bold';
     }
     return 'border-blue-200 bg-white';
   };
 
-  // Check specifico per l'array degli elementi (se è cambiata la struttura o il contenuto)
   const elementsChanged = isAdmin && originalData && JSON.stringify(configuredElements) !== JSON.stringify(originalData.elements);
 
   // --- LOGICA GESTIONE DENTI ---
@@ -199,7 +197,15 @@ export default function StepElements({
             <div className="bg-white border border-neutral-200 rounded-3xl p-6 h-[280px] flex flex-col shadow-sm">
                 <h5 className="font-bold text-neutral-800 mb-4 flex items-center justify-between shrink-0">
                     <span>Elementi nel Piano</span>
-                    <span className="bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md text-xs">{configuredElements.length}</span>
+                    {/* MOSTRA GRUPPI E TOTALE ELEMENTI */}
+                    <div className="flex items-center gap-2">
+                        <span className="bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md text-xs">
+                            {configuredElements.length} {configuredElements.length === 1 ? 'gruppo' : 'gruppi'}
+                        </span>
+                        <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-bold">
+                            {totalElements} {totalElements === 1 ? 'elemento' : 'elementi'}
+                        </span>
+                    </div>
                 </h5>
                 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
@@ -223,7 +229,7 @@ export default function StepElements({
                                         </div>
                                         <div>
                                             <p className={`text-sm font-bold ${style.text}`}>
-                                                {group.isBridge ? 'Ponte' : 'Singolo'}
+                                                {group.isBridge ? `Ponte (${group.teeth.length} elem.)` : 'Singolo'}
                                             </p>
                                             <p className="text-xs text-neutral-500 font-mono">
                                                 {group.teeth.join('-')}

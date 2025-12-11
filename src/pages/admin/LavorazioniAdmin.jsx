@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, Clock, 
-  AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft, XCircle 
+  AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft, XCircle, FileSignature
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button'; 
@@ -24,18 +24,18 @@ export default function LavorazioniAdmin() {
 
       const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
       if (preferredFilter) {
-          setFilter(preferredFilter === 'completati' ? 'archiviate' : preferredFilter);
-          sessionStorage.removeItem('mimesi_filter_pref');
+        setFilter(preferredFilter === 'completati' ? 'archiviate' : preferredFilter);
+        sessionStorage.removeItem('mimesi_filter_pref');
       }
 
       const validateId = sessionStorage.getItem('mimesi_validate_id');
       if (validateId) {
-          const jobToValidate = allJobs.find(j => String(j.id) === String(validateId));
-          if (jobToValidate) {
-              setEditingJob(jobToValidate.fullData || jobToValidate);
-              setFilter('da_valutare');
-          }
-          sessionStorage.removeItem('mimesi_validate_id');
+        const jobToValidate = allJobs.find(j => String(j.id) === String(validateId));
+        if (jobToValidate) {
+          setEditingJob(jobToValidate.fullData || jobToValidate);
+          setFilter('da_valutare');
+        }
+        sessionStorage.removeItem('mimesi_validate_id');
       }
     };
     loadData();
@@ -43,95 +43,146 @@ export default function LavorazioniAdmin() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCreateSubmit = (data) => {
+  const handleWizardSubmit = (data) => {
     const existingJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
-    
-    const newJob = { 
-        id: data.id,
-        paziente: `${data.cognome} ${data.nome}`,
-        tipo: data.elements.length > 0 
-          ? `${data.elements.length} Elementi in ${data.technicalInfo.material}`
-          : 'Nuova Lavorazione Interna',
-        dottore: data.nomeDottore ? `Dr. ${data.nomeDottore} ${data.cognomeDottore}` : 'Interno',
-        data: new Date().toLocaleDateString(),
-        stato: 'working',
-        statusLabel: 'In Lavorazione',
-        progress: 10,
-        fullData: data 
-    };
-
-    const updatedJobs = [newJob, ...existingJobs];
-    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
-
-    setLavorazioni(updatedJobs);
-    setIsCreating(false);
-    alert('Nuova lavorazione creata e avviata!');
-  };
-
-  const handleValidationSubmit = (updatedData) => {
-    const jobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+    const adminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+
+    const isNewJob = isCreating;
+    const actionType = data.adminAction;
+
+    const totalElements = data.elements.reduce((acc, group) => acc + group.teeth.length, 0);
+    const materialLabel = data.technicalInfo?.material?.replace('_', ' ') || 'N/D';
+    const patientName = `${data.cognome} ${data.nome}`;
+    const doctorName = data.nomeDottore && data.cognomeDottore 
+      ? `Dr. ${data.nomeDottore} ${data.cognomeDottore}` 
+      : 'Interno';
+    const studioName = data.nomeStudio || 'Laboratorio Interno';
+    const quoteTotal = data.quote?.total?.toFixed(2) || '0.00';
+    const currentDate = new Date().toLocaleDateString('it-IT', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    let newStatus, statusLabel, progress;
+
+    if (actionType === 'approve_internal') {
+      newStatus = 'working';
+      statusLabel = 'In Lavorazione';
+      progress = 0;
+
+      if (data.nomeDottore && data.cognomeDottore) {
+        doctorInbox.unshift({
+          id: Date.now(),
+          from: 'Mimesi Lab - Amministrazione',
+          subject: `✓ Lavorazione Avviata: ${patientName}`,
+          preview: `Gentile ${doctorName}, La informiamo che la lavorazione per il paziente ${patientName} (Rif. ${data.id}) è stata approvata e avviata in produzione in data ${currentDate}. Tipologia: ${totalElements} elemento/i in ${materialLabel}. La lavorazione procederà secondo le specifiche tecniche concordate. Riceverà aggiornamenti sullo stato di avanzamento.`,
+          date: new Date().toISOString(),
+          read: false,
+          unread: true,
+          type: 'info',
+          linkedJobId: data.id
+        });
+      }
+
+      adminInbox.unshift({
+        id: Date.now() + 1,
+        from: 'Sistema',
+        subject: `✓ Lavorazione Avviata: ${patientName}`,
+        preview: `Lavorazione ${data.id} approvata internamente e avviata in produzione. Paziente: ${patientName}. ${doctorName !== 'Interno' ? `Richiedente: ${doctorName} (${studioName}).` : 'Lavorazione interna.'} Tipologia: ${totalElements} elem. in ${materialLabel}.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'notification',
+        linkedJobId: data.id
+      });
+
+    } else if (actionType === 'send_to_doctor') {
+      newStatus = 'pending';
+      statusLabel = 'Attesa Firma';
+      progress = 0;
+
+      doctorInbox.unshift({
+        id: Date.now(),
+        from: 'Mimesi Lab - Amministrazione',
+        subject: `📋 Richiesta Firma Preventivo: ${patientName}`,
+        preview: `Gentile ${doctorName}, il preventivo per la lavorazione relativa al paziente ${patientName} (Rif. ${data.id}) è pronto per la Sua approvazione. Tipologia: ${totalElements} elemento/i in ${materialLabel}. Importo totale: € ${quoteTotal}. La preghiamo di visionare il preventivo e procedere con la firma digitale per avviare la produzione.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'request_signature',
+        linkedJobId: data.id,
+        quoteData: data.quote
+      });
+
+      adminInbox.unshift({
+        id: Date.now() + 1,
+        from: 'Sistema',
+        subject: `📤 Preventivo Inviato: ${patientName}`,
+        preview: `Preventivo per lavorazione ${data.id} inviato a ${doctorName} (${studioName}) per approvazione. Paziente: ${patientName}. Tipologia: ${totalElements} elem. in ${materialLabel}. Importo: € ${quoteTotal}. In attesa di firma digitale.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'notification',
+        linkedJobId: data.id
+      });
+    }
+
+    let updatedJobs;
     
-    const updatedJobs = jobs.map(j => {
-        if (j.id === updatedData.id) {
-            let newStatus = j.stato;
-            let statusLabel = j.statusLabel;
-
-            if (updatedData.adminAction === 'approve_internal') {
-                newStatus = 'working';
-                statusLabel = 'In Lavorazione';
-                
-                doctorInbox.unshift({
-                    id: Date.now(),
-                    from: 'Mimesi Admin',
-                    subject: `Lavorazione Avviata: ${updatedData.cognome} ${updatedData.nome}`,
-                    preview: 'La tua richiesta è stata validata e messa in produzione internamente.',
-                    date: new Date().toISOString(),
-                    read: false,
-                    unread: true,
-                    type: 'info'
-                });
-
-            } else if (updatedData.adminAction === 'send_to_doctor') {
-                newStatus = 'pending';
-                statusLabel = 'Attesa Firma';
-
-                doctorInbox.unshift({
-                    id: Date.now(),
-                    from: 'Mimesi Admin',
-                    subject: `Richiesta Firma Preventivo: ${updatedData.cognome}`,
-                    preview: 'È richiesta la tua approvazione sul preventivo per procedere con la lavorazione.',
-                    date: new Date().toISOString(),
-                    read: false,
-                    unread: true,
-                    type: 'request_signature',
-                    linkedJobId: updatedData.id,
-                    quoteData: updatedData.quote
-                });
-            }
-
-            return { 
-                ...updatedData, 
-                stato: newStatus,
-                statusLabel: statusLabel,
-                progress: 15
-            };
+    if (isNewJob) {
+      const newJob = { 
+        id: data.id,
+        paziente: patientName,
+        tipo: `${totalElements} Elem. ${materialLabel}`,
+        dottore: doctorName,
+        data: new Date().toLocaleDateString(),
+        stato: newStatus,
+        statusLabel: statusLabel,
+        progress: progress,
+        fullData: data 
+      };
+      updatedJobs = [newJob, ...existingJobs];
+    } else {
+      updatedJobs = existingJobs.map(j => {
+        if (String(j.id) === String(data.id)) {
+          return { 
+            ...j,
+            ...data,
+            paziente: patientName,
+            tipo: `${totalElements} Elem. ${materialLabel}`,
+            stato: newStatus,
+            statusLabel: statusLabel,
+            progress: progress,
+            fullData: data
+          };
         }
         return j;
-    });
+      });
+    }
 
     localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(doctorInbox));
-    
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(adminInbox));
+
     setLavorazioni(updatedJobs);
+    setIsCreating(false);
     setEditingJob(null);
-    alert('Stato lavorazione aggiornato con successo!');
+    
+    const message = actionType === 'approve_internal' 
+      ? 'Lavorazione approvata e avviata in produzione!' 
+      : 'Preventivo inviato al dottore per approvazione!';
+    alert(message);
   };
 
   const openValidation = (job) => {
-     if(job.stato === 'in_evaluation' || job.stato === 'pending') {
-         setEditingJob(job.fullData || job);
-     }
+    if(job.stato === 'in_evaluation' || job.stato === 'pending') {
+      setEditingJob(job.fullData || job);
+    }
   };
 
   const filteredList = lavorazioni.filter(item => {
@@ -146,47 +197,46 @@ export default function LavorazioniAdmin() {
       dottoreSafe.includes(searchLower);
     
     if (filter === 'tutti') return matchesSearch;
-    if (filter === 'da_valutare') return matchesSearch && (item.stato === 'in_evaluation' || item.stato === 'pending');
-    if (filter === 'attivi') return matchesSearch && (item.stato === 'working');
+    if (filter === 'da_valutare') return matchesSearch && item.stato === 'in_evaluation';
+    if (filter === 'attesa_firma') return matchesSearch && item.stato === 'pending';
+    if (filter === 'attivi') return matchesSearch && item.stato === 'working';
     if (filter === 'in_prova') return matchesSearch && item.stato === 'warning';
-    
-    // FILTRO ARCHIVIATE
     if (filter === 'archiviate') return matchesSearch && (item.stato === 'completed' || item.stato === 'rejected');
     
     return matchesSearch;
   });
 
   if (isCreating || editingJob) {
-      return (
-        <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                <div className="flex items-center gap-4 mb-6">
-                    <button 
-                        onClick={() => { setIsCreating(false); setEditingJob(null); }}
-                        className="p-2 bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50 text-neutral-500 transition-colors"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-neutral-800">
-                            {isCreating ? 'Nuova Lavorazione Interna' : 'Validazione Tecnica'}
-                        </h1>
-                        <p className="text-neutral-500 text-sm">
-                            {isCreating ? 'Crea una nuova lavorazione manuale' : 'Revisiona e valida la richiesta del dottore'}
-                        </p>
-                    </div>
-                </div>
+    return (
+      <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          <div className="flex items-center gap-4 mb-6">
+            <button 
+              onClick={() => { setIsCreating(false); setEditingJob(null); }}
+              className="p-2 bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50 text-neutral-500 transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-800">
+                {isCreating ? 'Nuova Lavorazione' : 'Validazione Tecnica'}
+              </h1>
+              <p className="text-neutral-500 text-sm">
+                {isCreating ? 'Crea una nuova lavorazione con preventivo' : 'Revisiona e valida la richiesta del dottore'}
+              </p>
+            </div>
+          </div>
 
-                <div className="bg-white/50 rounded-3xl">
-                     <WizardRequestAdmin
-                        initialData={editingJob} 
-                        onCancel={() => { setIsCreating(false); setEditingJob(null); }}
-                        onSubmit={isCreating ? handleCreateSubmit : handleValidationSubmit}
-                     />
-                </div>
-            </motion.div>
-        </div>
-      );
+          <div className="bg-white/50 rounded-3xl">
+            <WizardRequestAdmin
+              initialData={editingJob} 
+              onCancel={() => { setIsCreating(false); setEditingJob(null); }}
+              onSubmit={handleWizardSubmit}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -198,7 +248,7 @@ export default function LavorazioniAdmin() {
         </div>
         <div className="flex gap-3">
           <Button onClick={() => setIsCreating(true)}>
-             <Plus size={20} className="mr-2" /> Nuova Lavorazione
+            <Plus size={20} className="mr-2" /> Nuova Lavorazione
           </Button>
         </div>
       </div>
@@ -220,6 +270,7 @@ export default function LavorazioniAdmin() {
             {[
               { id: 'tutti', label: 'Tutti' },
               { id: 'da_valutare', label: 'Da Valutare' },
+              { id: 'attesa_firma', label: 'Attesa Firma' },
               { id: 'attivi', label: 'Attivi' },
               { id: 'in_prova', label: 'In Prova' },
               { id: 'archiviate', label: 'Archiviate' }
@@ -249,8 +300,10 @@ export default function LavorazioniAdmin() {
               onClick={() => openValidation(item)} 
             >
               <div className={`group bg-white rounded-xl p-4 border transition-all cursor-pointer flex flex-col md:flex-row items-center gap-4
-                  ${item.stato === 'rejected' ? 'border-red-100 bg-red-50/10' :
-                    item.stato === 'in_evaluation' ? 'border-blue-200 shadow-md ring-1 ring-blue-100' : 'border-neutral-100 hover:border-primary/30 hover:shadow-md'}
+                ${item.stato === 'rejected' ? 'border-red-100 bg-red-50/10' :
+                  item.stato === 'in_evaluation' ? 'border-blue-200 shadow-md ring-1 ring-blue-100' : 
+                  item.stato === 'pending' ? 'border-orange-200 shadow-md ring-1 ring-orange-100' :
+                  'border-neutral-100 hover:border-primary/30 hover:shadow-md'}
               `}>
                 
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
@@ -264,7 +317,7 @@ export default function LavorazioniAdmin() {
                   {item.stato === 'completed' ? <CheckCircle size={20} /> : 
                    item.stato === 'rejected' ? <XCircle size={20} /> :
                    item.stato === 'warning' ? <AlertCircle size={20} /> : 
-                   item.stato === 'pending' ? <Clock size={20} /> : 
+                   item.stato === 'pending' ? <FileSignature size={20} /> : 
                    item.stato === 'in_evaluation' ? <AlertTriangle size={20} /> :
                    <Clock size={20} />}
                 </div>
@@ -284,34 +337,34 @@ export default function LavorazioniAdmin() {
 
                 <div className="w-full md:w-36 shrink-0 flex justify-end">
                   {item.stato === 'completed' ? (
-                     <span className="inline-block px-3 py-1 bg-success/10 text-success text-xs font-bold rounded-full">
-                       Completato
-                     </span>
+                    <span className="inline-block px-3 py-1 bg-success/10 text-success text-xs font-bold rounded-full">
+                      Completato
+                    </span>
                   ) : item.stato === 'rejected' ? (
-                     <span className="inline-block px-3 py-1 bg-red-100 text-red-600 text-xs font-bold rounded-full border border-red-200">
-                       Rifiutata
-                     </span>
+                    <span className="inline-block px-3 py-1 bg-red-100 text-red-600 text-xs font-bold rounded-full border border-red-200">
+                      Rifiutata
+                    </span>
                   ) : item.stato === 'warning' ? (
-                     <span className="inline-block px-3 py-1 bg-warning text-white text-xs font-bold rounded-full shadow-sm animate-pulse">
-                       {item.statusLabel}
-                     </span>
+                    <span className="inline-block px-3 py-1 bg-warning text-white text-xs font-bold rounded-full shadow-sm animate-pulse">
+                      {item.statusLabel}
+                    </span>
                   ) : item.stato === 'pending' ? (
-                     <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
-                       Attesa Firma
-                     </span>
+                    <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
+                      Attesa Firma
+                    </span>
                   ) : item.stato === 'in_evaluation' ? (
-                     <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/30">
-                       DA VALIDARE
-                     </span>
+                    <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/30">
+                      DA VALIDARE
+                    </span>
                   ) : (
                     <div className="flex flex-col items-end w-full">
-                       <span className="text-[10px] font-bold text-primary mb-1">{item.progress}%</span>
-                       <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary" 
-                            style={{ width: `${item.progress}%` }} 
-                          />
-                       </div>
+                      <span className="text-[10px] font-bold text-primary mb-1">{item.progress || 0}%</span>
+                      <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary" 
+                          style={{ width: `${item.progress || 0}%` }} 
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

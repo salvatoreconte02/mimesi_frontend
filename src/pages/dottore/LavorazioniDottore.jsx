@@ -72,7 +72,7 @@ export default function LavorazioniDottore() {
         id: Date.now(),
         from: 'Mimesi Lab System',
         subject: `Riepilogo Richiesta: ${data.cognome} ${data.nome}`,
-        preview: `Gentile Dr. ${data.cognomeDottore}, confermiamo la ricezione della Sua prescrizione per il paziente ${data.cognome} ${data.nome} (Rif. ${data.id}). La richiesta è ora in fase di valutazione tecnica presso il nostro laboratorio. Riceverà notifica non appena l'esito sarà disponibile.`,
+        preview: `Gentile Dr. ${data.cognomeDottore}, confermiamo la ricezione della Sua prescrizione per il paziente ${data.cognome} ${data.nome} (Rif. ${data.id}). La richiesta è ora in fase di valutazione tecnica presso il nostro laboratorio. Riceverà notifica non appena il preventivo sarà pronto per la Sua approvazione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,

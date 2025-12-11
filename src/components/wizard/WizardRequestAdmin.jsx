@@ -5,9 +5,8 @@ export default function WizardRequestAdmin({ onCancel, onSubmit, onStepChange, i
   // SE C'È INITIAL DATA -> STIAMO VALIDANDO UNA RICHIESTA ESISTENTE
   const isValidationMode = !!initialData;
 
-  const stepsList = isValidationMode 
-      ? ['Paziente', 'Lavorazione', 'Files', 'Riepilogo', 'Preventivo', 'Approvazione']
-      : ['Paziente', 'Lavorazione', 'Files', 'Riepilogo'];
+  // SEMPRE 6 STEP PER ADMIN (sia creazione che validazione)
+  const stepsList = ['Paziente', 'Lavorazione', 'Files', 'Riepilogo', 'Preventivo', 'Approvazione'];
 
   return (
     <WizardCore 
@@ -16,18 +15,19 @@ export default function WizardRequestAdmin({ onCancel, onSubmit, onStepChange, i
         onStepChange={onStepChange}
         initialData={initialData}
         
-        title={isValidationMode ? "Validazione Tecnica" : "Nuova Lavorazione Interna"}
+        title={isValidationMode ? "Validazione Tecnica" : "Nuova Lavorazione"}
         
         // CONFIGURAZIONE ADMIN
         isAdmin={true}
         stepsList={stepsList}
         
-        // IL PUNTO CRUCIALE: Se validiamo, i dati dottore sono sola lettura. 
-        // Se creiamo internamente, possiamo scriverli.
+        // Se validiamo, i dati dottore sono sola lettura. 
+        // Se creiamo internamente, possiamo scriverli (nome dottore, studio, etc.)
         readOnlyDoctorData={isValidationMode} 
         
-        showQuoteStep={isValidationMode}
-        showApprovalStep={isValidationMode}
+        // SEMPRE MOSTRA QUOTE E APPROVAL STEP
+        showQuoteStep={true}
+        showApprovalStep={true}
     />
   );
 }

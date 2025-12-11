@@ -13,6 +13,8 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
     useEffect(() => {
         const mat = data.technicalInfo?.material || 'zirconio';
         const basePrice = PRICES[mat] || 100;
+        
+        // CALCOLO CORRETTO: somma di tutti i denti in tutti i gruppi
         const elementCount = data.elements.reduce((acc, el) => acc + el.teeth.length, 0);
         
         // Calcolo spedizioni
@@ -30,6 +32,7 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
         setQuote({
             basePrice,
             elementCount,
+            groupCount: data.elements.length, // Numero di gruppi per info
             shipmentCount: datesCount,
             shipmentTotal,
             manualAdjustment: manualAdj,
@@ -62,7 +65,12 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
                         <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                             <div>
                                 <p className="text-xs font-bold text-neutral-500 uppercase">Lavorazione</p>
-                                <p className="text-sm font-medium">{quote.elementCount} elem. in {data.technicalInfo.material}</p>
+                                <p className="text-sm font-medium">
+                                    {quote.elementCount} elem. in {data.technicalInfo.material?.replace('_', ' ')}
+                                </p>
+                                <p className="text-[10px] text-neutral-400">
+                                    ({quote.groupCount || data.elements.length} {(quote.groupCount || data.elements.length) === 1 ? 'gruppo' : 'gruppi'})
+                                </p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs text-neutral-400">x € {quote.basePrice}</p>
@@ -101,6 +109,10 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
                         <div>
                             <p className="text-xs text-neutral-400 uppercase font-bold tracking-widest">Totale Preventivato</p>
                             <p className="text-4xl font-bold mt-2">€ {quote.total?.toFixed(2)}</p>
+                            <p className="text-xs text-neutral-500 mt-2">
+                                {quote.elementCount} elementi × € {quote.basePrice} + € {quote.shipmentTotal?.toFixed(2)} spedizioni
+                                {quote.manualAdjustment !== 0 && ` ${quote.manualAdjustment > 0 ? '+' : ''} € ${quote.manualAdjustment}`}
+                            </p>
                         </div>
                         <div className="pt-4 border-t border-white/10 text-xs text-neutral-400">
                             Cliccando avanti genererai il documento PDF unificato pronto per la firma o l'invio.
