@@ -13,7 +13,6 @@ export default function InboxDottore() {
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [messages, setMessages] = useState([]);
   
-  // Stati solo per la firma (usati solo se serve)
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
 
@@ -25,12 +24,11 @@ export default function InboxDottore() {
          const parsedMsgs = JSON.parse(stored);
          setMessages(parsedMsgs);
 
-         // Controllo redirect da Dashboard
          const targetId = sessionStorage.getItem('mimesi_msg_id');
          if (targetId) {
              const found = parsedMsgs.find(m => String(m.id) === String(targetId));
              if (found) {
-                 handleSelectMessage(found); // Uso la funzione handler per pulizia
+                 handleSelectMessage(found); 
              }
              sessionStorage.removeItem('mimesi_msg_id');
          }
@@ -43,7 +41,6 @@ export default function InboxDottore() {
 
   // --- AZIONI ---
   const markAsRead = (msgId) => {
-    // Ottimizzazione: se è già letto non fare nulla (evita render inutili)
     const msg = messages.find(m => m.id === msgId);
     if (msg && msg.read) return;
 
@@ -60,65 +57,80 @@ export default function InboxDottore() {
 
   const handleSelectMessage = (msg) => {
     setSelectedMsg(msg);
-    // Reset stati firma quando cambio messaggio
     setShowOtp(false);
     setOtpCode('');
     markAsRead(msg.id);
   };
 
   const handleRequestOtp = () => {
-    alert('Codice OTP inviato via email!');
+    alert(`Codice OTP inviato all'indirizzo email associato a Dr. ${user?.cognome || 'Utente'}!`);
     setShowOtp(true);
   };
 
-  // --- LOGICA AGGIORNATA PER LA FIRMA ---
+  // --- FIRMA PREVENTIVO CON OTP ---
   const handleConfirmSignature = () => {
     if (otpCode.length !== 6) {
       alert('Inserisci un codice OTP valido (6 cifre)');
       return;
     }
 
-    // 1. Recupera tutti i dati necessari dal localStorage
     const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
     const adminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
 
-    // Identifica l'ID della lavorazione target
     const targetId = selectedMsg.linkedJobId || selectedMsg.fullData?.id;
-    let patientName = "Paziente"; // Default fallback
+    let jobData = null;
 
-    // 2. Aggiorna la lavorazione (Stato: working, Progresso: 0%)
+    // Trova e aggiorna la lavorazione
     const updatedJobs = allLavorazioni.map(lav => {
-      if (lav.id === targetId) {
-        patientName = lav.paziente; // Catturiamo il nome per usarlo nei messaggi
+      if (String(lav.id) === String(targetId)) {
+        jobData = lav;
         return { 
             ...lav, 
             stato: 'working', 
-            progress: 0, // Richiesto: reset a 0%
-            statusLabel: 'In Lavorazione' 
+            progress: 0, 
+            statusLabel: 'In Lavorazione',
+            signedAt: new Date().toISOString(),
+            signedBy: user ? `Dr. ${user.nome} ${user.cognome}` : 'Dottore'
         };
       }
       return lav;
     });
 
-    // 3. Aggiungi messaggio di conferma nella Inbox del Dottore (Acknowledgment)
+    // Dati per le notifiche
+    const patientName = jobData?.paziente || 'Paziente';
+    const doctorName = user ? `Dr. ${user.nome} ${user.cognome}` : 'Dottore';
+    const studioName = jobData?.fullData?.nomeStudio || user?.nomeStudio || 'Studio';
+    const materialInfo = jobData?.fullData?.technicalInfo?.material?.replace('_', ' ') || jobData?.tipo || 'N/D';
+    const quoteTotal = selectedMsg.quoteData?.total?.toFixed(2) || 'N/D';
+    const currentDate = new Date().toLocaleDateString('it-IT', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Notifica al Dottore - Conferma Firma
     doctorInbox.unshift({
         id: Date.now(),
-        from: 'Mimesi Admin',
-        subject: `Conferma Avvio: ${targetId}`,
-        preview: `Hai firmato correttamente il preventivo. La lavorazione ${targetId} è ora in produzione.`,
+        from: 'Mimesi Lab - Amministrazione',
+        subject: `✓ Preventivo Approvato: ${patientName}`,
+        preview: `Gentile ${doctorName}, confermiamo la ricezione della Sua firma digitale per il preventivo relativo al paziente ${patientName}. La lavorazione (Rif. ${targetId}) è stata ufficialmente avviata in data ${currentDate}. Materiale selezionato: ${materialInfo}. Importo totale confermato: € ${quoteTotal}. Riceverà aggiornamenti sullo stato di avanzamento direttamente in questa sezione. Per qualsiasi necessità, il nostro team tecnico è a Sua disposizione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
-        type: 'info'
+        type: 'info',
+        linkedJobId: targetId
     });
 
-    // 4. Aggiungi messaggio di notifica nella Inbox dell'Admin
+    // Notifica all'Admin - Preventivo Firmato
     adminInbox.unshift({
-        id: Date.now() + 1, // +1ms per evitare ID identici
-        from: user ? `Dr. ${user.cognome} ${user.nome}` : 'Dottore',
-        subject: `Preventivo Firmato: ${targetId}`,
-        preview: `Il dottore ha firmato il preventivo tramite OTP. La lavorazione ${targetId} è stata avviata.`,
+        id: Date.now() + 1,
+        from: doctorName,
+        subject: `✓ Preventivo Firmato: ${patientName}`,
+        preview: `${doctorName} (${studioName}) ha approvato e firmato digitalmente il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo confermato: € ${quoteTotal}. Firma apposta in data ${currentDate} tramite verifica OTP. La lavorazione è ora attiva e può procedere con la produzione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -126,27 +138,96 @@ export default function InboxDottore() {
         linkedJobId: targetId
     });
 
-    // 5. Salva tutto nel localStorage
     localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
     localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(doctorInbox));
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(adminInbox));
-
-    // 6. Aggiorna lo stato locale per riflettere subito il nuovo messaggio
     setMessages(doctorInbox);
 
-    alert('✅ Documento firmato digitalmente! La lavorazione è stata avviata.');
+    alert('✅ Preventivo firmato con successo!\n\nLa lavorazione è stata avviata e troverà conferma nella Sua Inbox.');
     setSelectedMsg(null);
     setShowOtp(false);
+    setOtpCode('');
   };
 
+  // --- RIFIUTO PREVENTIVO ---
   const handleReject = () => {
-    if (window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
-      alert('Preventivo rifiutato. Contatta l\'amministrazione per modifiche.');
+    if (window.confirm('Sei sicuro di voler rifiutare questo preventivo?\n\nLa lavorazione verrà archiviata come "Rifiutata" e sia tu che il laboratorio riceverete notifica.')) {
+      
+      const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+      const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+      const adminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+
+      const targetId = selectedMsg.linkedJobId || selectedMsg.fullData?.id;
+      let jobData = null;
+
+      // Aggiorna la lavorazione a stato REJECTED
+      const updatedJobs = allLavorazioni.map(lav => {
+        if (String(lav.id) === String(targetId)) {
+            jobData = lav;
+            return {
+                ...lav,
+                stato: 'rejected',
+                statusLabel: 'Rifiutata',
+                progress: 0,
+                rejectedAt: new Date().toISOString(),
+                rejectedBy: user ? `Dr. ${user.nome} ${user.cognome}` : 'Dottore'
+            };
+        }
+        return lav;
+      });
+
+      // Dati per le notifiche
+      const patientName = jobData?.paziente || 'Paziente';
+      const doctorName = user ? `Dr. ${user.nome} ${user.cognome}` : 'Dottore';
+      const studioName = jobData?.fullData?.nomeStudio || user?.nomeStudio || 'Studio';
+      const materialInfo = jobData?.fullData?.technicalInfo?.material?.replace('_', ' ') || jobData?.tipo || 'N/D';
+      const quoteTotal = selectedMsg.quoteData?.total?.toFixed(2) || 'N/D';
+      const currentDate = new Date().toLocaleDateString('it-IT', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Notifica al Dottore - Conferma Rifiuto
+      doctorInbox.unshift({
+        id: Date.now(),
+        from: 'Mimesi Lab - Amministrazione',
+        subject: `✗ Preventivo Rifiutato: ${patientName}`,
+        preview: `Gentile ${doctorName}, confermiamo che il preventivo per il paziente ${patientName} (Rif. ${targetId}) è stato rifiutato in data ${currentDate}. La richiesta è stata archiviata nel sistema. Tipologia richiesta: ${materialInfo}. Importo preventivato: € ${quoteTotal}. Se desidera procedere con una nuova richiesta o necessita di modifiche al preventivo, può creare una nuova prescrizione in qualsiasi momento. Il nostro team resta a disposizione per eventuali chiarimenti.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'info',
+        linkedJobId: targetId
+      });
+
+      // Notifica all'Admin - Preventivo Rifiutato
+      adminInbox.unshift({
+        id: Date.now() + 1,
+        from: doctorName,
+        subject: `✗ Preventivo RIFIUTATO: ${patientName}`,
+        preview: `ATTENZIONE: ${doctorName} (${studioName}) ha rifiutato il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo proposto: € ${quoteTotal}. Data rifiuto: ${currentDate}. La pratica è stata automaticamente spostata nell'archivio con stato "Rifiutata". Si consiglia di contattare lo studio per comprendere le motivazioni del rifiuto e valutare eventuali proposte alternative.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'notification', 
+        linkedJobId: targetId
+      });
+
+      localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
+      localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(doctorInbox));
+      localStorage.setItem('mimesi_admin_inbox', JSON.stringify(adminInbox));
+      
+      setMessages(doctorInbox);
+
+      alert('Preventivo rifiutato.\n\nLa richiesta è stata archiviata e il laboratorio è stato notificato.');
       setSelectedMsg(null);
     }
   };
 
-  // Helper per capire se serve il footer
   const isSignatureRequest = selectedMsg?.type === 'request_signature';
 
   return (
@@ -162,8 +243,6 @@ export default function InboxDottore() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
-        
-        {/* COLONNA SX: LISTA MESSAGGI */}
         <Card className="lg:col-span-1 !p-0 overflow-hidden flex flex-col h-full">
            <div className="p-4 border-b border-neutral-100 bg-neutral-50">
               <div className="relative">
@@ -206,7 +285,6 @@ export default function InboxDottore() {
            </div>
         </Card>
 
-        {/* COLONNA DX: DETTAGLIO */}
         <Card className="lg:col-span-2 !p-0 overflow-hidden h-full relative">
            {selectedMsg ? (
              <motion.div 
@@ -214,7 +292,6 @@ export default function InboxDottore() {
                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                className="flex flex-col h-full"
              >
-                {/* HEADER MESSAGGIO */}
                 <div className="p-6 border-b border-neutral-100 flex justify-between items-start">
                    <div>
                       <h2 className="text-xl font-bold text-neutral-800 mb-2">{selectedMsg.subject}</h2>
@@ -234,11 +311,9 @@ export default function InboxDottore() {
                    </div>
                 </div>
 
-                {/* CORPO MESSAGGIO SCROLLABILE */}
                 <div className="p-8 flex-1 overflow-y-auto text-neutral-600 text-sm leading-relaxed custom-scrollbar">
-                   <p className="mb-4">{selectedMsg.preview}</p>
+                   <p className="mb-4 whitespace-pre-wrap">{selectedMsg.preview}</p>
                    
-                   {/* CONTENUTO DINAMICO: RIEPILOGO */}
                    {selectedMsg.type === 'order_summary' && selectedMsg.fullData && (
                      <div className="mt-4">
                         <StepSummary 
@@ -254,7 +329,6 @@ export default function InboxDottore() {
                      </div>
                    )}
 
-                   {/* CONTENUTO DINAMICO: PREVENTIVO */}
                    {isSignatureRequest && selectedMsg.quoteData && (
                      <div className="mt-6 space-y-4">
                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
@@ -294,7 +368,6 @@ export default function InboxDottore() {
                    )}
                 </div>
 
-                {/* FOOTER AZIONI - VISIBILE SOLO SE RICHIESTA FIRMA */}
                 {isSignatureRequest && (
                     <div className="p-4 border-t border-neutral-100 bg-neutral-50">
                         {!showOtp ? (

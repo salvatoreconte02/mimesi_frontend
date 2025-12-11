@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, Clock, 
-  AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft 
+  AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft, XCircle 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button'; 
@@ -13,46 +13,36 @@ export default function LavorazioniAdmin() {
   const [search, setSearch] = useState('');
   const [lavorazioni, setLavorazioni] = useState([]);
   
-  // STATI PER IL WIZARD
   const [editingJob, setEditingJob] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Carica lavorazioni dal localStorage
   useEffect(() => {
     const loadData = () => {
       const stored = localStorage.getItem('mimesi_all_lavorazioni');
       const allJobs = stored ? JSON.parse(stored) : [];
       setLavorazioni(allJobs);
 
-      // -- CONTROLLO FILTRO DALLA DASHBOARD --
       const preferredFilter = sessionStorage.getItem('mimesi_filter_pref');
       if (preferredFilter) {
-          setFilter(preferredFilter);
+          setFilter(preferredFilter === 'completati' ? 'archiviate' : preferredFilter);
           sessionStorage.removeItem('mimesi_filter_pref');
       }
 
-      // -- NUOVO: CONTROLLO RICHIESTA VALIDAZIONE DA INBOX --
-      // Se l'admin arriva cliccando "Procedi alla Validazione" nella Inbox
       const validateId = sessionStorage.getItem('mimesi_validate_id');
       if (validateId) {
           const jobToValidate = allJobs.find(j => String(j.id) === String(validateId));
           if (jobToValidate) {
-              // Apri direttamente il wizard in modalità validazione (editingJob popolato)
               setEditingJob(jobToValidate.fullData || jobToValidate);
-              // Opzionale: imposta il filtro su 'da_valutare' per coerenza visiva sotto
               setFilter('da_valutare');
           }
           sessionStorage.removeItem('mimesi_validate_id');
       }
     };
     loadData();
-
-    // Refresh automatico
     const interval = setInterval(loadData, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- HANDLER: CREAZIONE NUOVA LAVORAZIONE (Interna) ---
   const handleCreateSubmit = (data) => {
     const existingJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     
@@ -78,7 +68,6 @@ export default function LavorazioniAdmin() {
     alert('Nuova lavorazione creata e avviata!');
   };
 
-  // --- HANDLER: VALIDAZIONE ESISTENTE ---
   const handleValidationSubmit = (updatedData) => {
     const jobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
     const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
@@ -145,7 +134,6 @@ export default function LavorazioniAdmin() {
      }
   };
 
-  // Logica filtro ADMIN con PROTEZIONE CRASH
   const filteredList = lavorazioni.filter(item => {
     const pazienteSafe = String(item.paziente || '').toLowerCase();
     const idSafe = String(item.id || '').toLowerCase();
@@ -161,17 +149,17 @@ export default function LavorazioniAdmin() {
     if (filter === 'da_valutare') return matchesSearch && (item.stato === 'in_evaluation' || item.stato === 'pending');
     if (filter === 'attivi') return matchesSearch && (item.stato === 'working');
     if (filter === 'in_prova') return matchesSearch && item.stato === 'warning';
-    if (filter === 'completati') return matchesSearch && item.stato === 'completed';
+    
+    // FILTRO ARCHIVIATE
+    if (filter === 'archiviate') return matchesSearch && (item.stato === 'completed' || item.stato === 'rejected');
+    
     return matchesSearch;
   });
 
-  // --- RENDER WIZARD (FULL PAGE) ---
   if (isCreating || editingJob) {
       return (
         <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                
-                {/* Header Wizard Navigazione */}
                 <div className="flex items-center gap-4 mb-6">
                     <button 
                         onClick={() => { setIsCreating(false); setEditingJob(null); }}
@@ -189,7 +177,6 @@ export default function LavorazioniAdmin() {
                     </div>
                 </div>
 
-                {/* Wizard Component - NUOVA VERSIONE */}
                 <div className="bg-white/50 rounded-3xl">
                      <WizardRequestAdmin
                         initialData={editingJob} 
@@ -202,11 +189,8 @@ export default function LavorazioniAdmin() {
       );
   }
 
-  // --- RENDER LISTA (DEFAULT) ---
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen relative">
-      
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Gestione Lavorazioni</h1>
@@ -219,7 +203,6 @@ export default function LavorazioniAdmin() {
         </div>
       </div>
 
-      {/* TOOLBAR */}
       <Card className="mb-8 !p-4">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
           <div className="relative w-full md:w-96">
@@ -239,7 +222,7 @@ export default function LavorazioniAdmin() {
               { id: 'da_valutare', label: 'Da Valutare' },
               { id: 'attivi', label: 'Attivi' },
               { id: 'in_prova', label: 'In Prova' },
-              { id: 'completati', label: 'Completati' }
+              { id: 'archiviate', label: 'Archiviate' }
             ].map((f) => (
               <button
                 key={f.id}
@@ -255,7 +238,6 @@ export default function LavorazioniAdmin() {
         </div>
       </Card>
 
-      {/* LISTA LAVORAZIONI */}
       <div className="space-y-3">
         {filteredList.length > 0 ? (
           filteredList.map((item, index) => (
@@ -264,28 +246,29 @@ export default function LavorazioniAdmin() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              onClick={() => openValidation(item)} // Clicca per validare
+              onClick={() => openValidation(item)} 
             >
               <div className={`group bg-white rounded-xl p-4 border transition-all cursor-pointer flex flex-col md:flex-row items-center gap-4
-                  ${item.stato === 'in_evaluation' ? 'border-blue-200 shadow-md ring-1 ring-blue-100' : 'border-neutral-100 hover:border-primary/30 hover:shadow-md'}
+                  ${item.stato === 'rejected' ? 'border-red-100 bg-red-50/10' :
+                    item.stato === 'in_evaluation' ? 'border-blue-200 shadow-md ring-1 ring-blue-100' : 'border-neutral-100 hover:border-primary/30 hover:shadow-md'}
               `}>
                 
-                {/* Icona Stato */}
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                   item.stato === 'completed' ? 'bg-success/10 text-success' :
+                  item.stato === 'rejected' ? 'bg-red-100 text-red-500' :
                   item.stato === 'warning' ? 'bg-warning/10 text-warning' :
                   item.stato === 'pending' ? 'bg-orange-100 text-orange-500' :
                   item.stato === 'in_evaluation' ? 'bg-blue-100 text-blue-600 animate-pulse' :
                   'bg-primary/10 text-primary'
                 }`}>
                   {item.stato === 'completed' ? <CheckCircle size={20} /> : 
+                   item.stato === 'rejected' ? <XCircle size={20} /> :
                    item.stato === 'warning' ? <AlertCircle size={20} /> : 
                    item.stato === 'pending' ? <Clock size={20} /> : 
                    item.stato === 'in_evaluation' ? <AlertTriangle size={20} /> :
                    <Clock size={20} />}
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0 text-center md:text-left">
                   <h4 className="font-bold text-neutral-800">{item.paziente}</h4>
                   <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-neutral-500 flex-wrap">
@@ -295,16 +278,18 @@ export default function LavorazioniAdmin() {
                   </div>
                 </div>
 
-                {/* Data */}
                 <div className="text-sm text-neutral-500 flex items-center gap-1 shrink-0">
                   <Calendar size={14} /> {item.data}
                 </div>
 
-                {/* Stato / Progresso */}
                 <div className="w-full md:w-36 shrink-0 flex justify-end">
                   {item.stato === 'completed' ? (
                      <span className="inline-block px-3 py-1 bg-success/10 text-success text-xs font-bold rounded-full">
                        Completato
+                     </span>
+                  ) : item.stato === 'rejected' ? (
+                     <span className="inline-block px-3 py-1 bg-red-100 text-red-600 text-xs font-bold rounded-full border border-red-200">
+                       Rifiutata
                      </span>
                   ) : item.stato === 'warning' ? (
                      <span className="inline-block px-3 py-1 bg-warning text-white text-xs font-bold rounded-full shadow-sm animate-pulse">
