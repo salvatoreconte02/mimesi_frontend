@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Search, Mail, Paperclip, Star, FileText, CheckCircle, AlertCircle, ArrowRight 
+  Search, Mail, Paperclip, Star, ArrowRight 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -181,20 +181,14 @@ export default function InboxAdmin({ setPage }) {
                    )}
                 </div>
 
-                {/* Footer Azioni */}
-                <div className="p-4 border-t border-neutral-100 bg-neutral-50 flex gap-3 justify-end">
-                   {selectedMsg.type === 'request' ? (
-                     // MODIFICA: Rimosso tasto Rifiuta, solo azione positiva di avanzamento
+                {/* Footer Azioni: VISIBILE SOLO SE E' UNA RICHIESTA DA VALIDARE */}
+                {selectedMsg.type === 'request' && (
+                  <div className="p-4 border-t border-neutral-100 bg-neutral-50 flex gap-3 justify-end">
                      <Button variant="gradient" onClick={handleOpenJob}>
                         Procedi alla Validazione <ArrowRight size={18} className="ml-2"/>
                      </Button>
-                   ) : (
-                     <>
-                       <input type="text" placeholder="Scrivi una risposta..." className="flex-1 px-4 py-2 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
-                       <Button variant="gradient" className="px-6">Invia</Button>
-                     </>
-                   )}
-                </div>
+                  </div>
+                )}
 
              </motion.div>
            ) : (

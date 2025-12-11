@@ -71,21 +71,68 @@ export default function InboxDottore() {
     setShowOtp(true);
   };
 
+  // --- LOGICA AGGIORNATA PER LA FIRMA ---
   const handleConfirmSignature = () => {
     if (otpCode.length !== 6) {
       alert('Inserisci un codice OTP valido (6 cifre)');
       return;
     }
 
-    // Aggiorna stato lavorazione globale
+    // 1. Recupera tutti i dati necessari dal localStorage
     const allLavorazioni = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
-    const updated = allLavorazioni.map(lav => {
-      if (lav.id === selectedMsg.linkedJobId || lav.id === selectedMsg.fullData?.id) {
-        return { ...lav, stato: 'working', progress: 20, statusLabel: 'In Lavorazione' };
+    const doctorInbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+    const adminInbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+
+    // Identifica l'ID della lavorazione target
+    const targetId = selectedMsg.linkedJobId || selectedMsg.fullData?.id;
+    let patientName = "Paziente"; // Default fallback
+
+    // 2. Aggiorna la lavorazione (Stato: working, Progresso: 0%)
+    const updatedJobs = allLavorazioni.map(lav => {
+      if (lav.id === targetId) {
+        patientName = lav.paziente; // Catturiamo il nome per usarlo nei messaggi
+        return { 
+            ...lav, 
+            stato: 'working', 
+            progress: 0, // Richiesto: reset a 0%
+            statusLabel: 'In Lavorazione' 
+        };
       }
       return lav;
     });
-    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updated));
+
+    // 3. Aggiungi messaggio di conferma nella Inbox del Dottore (Acknowledgment)
+    doctorInbox.unshift({
+        id: Date.now(),
+        from: 'Mimesi Admin',
+        subject: `Conferma Avvio: ${targetId}`,
+        preview: `Hai firmato correttamente il preventivo. La lavorazione ${targetId} è ora in produzione.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'info'
+    });
+
+    // 4. Aggiungi messaggio di notifica nella Inbox dell'Admin
+    adminInbox.unshift({
+        id: Date.now() + 1, // +1ms per evitare ID identici
+        from: user ? `Dr. ${user.cognome} ${user.nome}` : 'Dottore',
+        subject: `Preventivo Firmato: ${targetId}`,
+        preview: `Il dottore ha firmato il preventivo tramite OTP. La lavorazione ${targetId} è stata avviata.`,
+        date: new Date().toISOString(),
+        read: false,
+        unread: true,
+        type: 'notification',
+        linkedJobId: targetId
+    });
+
+    // 5. Salva tutto nel localStorage
+    localStorage.setItem('mimesi_all_lavorazioni', JSON.stringify(updatedJobs));
+    localStorage.setItem('mimesi_doctor_inbox', JSON.stringify(doctorInbox));
+    localStorage.setItem('mimesi_admin_inbox', JSON.stringify(adminInbox));
+
+    // 6. Aggiorna lo stato locale per riflettere subito il nuovo messaggio
+    setMessages(doctorInbox);
 
     alert('✅ Documento firmato digitalmente! La lavorazione è stata avviata.');
     setSelectedMsg(null);
