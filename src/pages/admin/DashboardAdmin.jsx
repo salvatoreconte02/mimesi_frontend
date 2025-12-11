@@ -127,7 +127,7 @@ export default function DashboardAdmin({ setPage }) {
             </div>
           </div>
           <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.completed}</h3>
-          <p className="text-sm text-neutral-500 font-medium">Completati</p>
+          <p className="text-sm text-neutral-500 font-medium">Archiviate</p>
         </motion.div>
 
       </div>

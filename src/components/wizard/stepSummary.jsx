@@ -261,7 +261,7 @@ export default function StepSummary({
             <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex gap-3 items-start">
                 <Info size={20} className="text-yellow-600 mt-0.5 shrink-0" />
                 <p className="text-sm text-yellow-800">
-                Confermando, la richiesta verrà inviata all'Amministrazione per la validazione. Riceverai una notifica quando il preventivo sarà pronto.
+                Confermando, la richiesta passerà allo stato Calcolo del Preventivo.
                 </p>
             </div>
 
