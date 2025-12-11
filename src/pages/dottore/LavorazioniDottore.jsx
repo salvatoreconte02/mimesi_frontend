@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, 
   Clock, AlertCircle, ChevronRight, Calendar, Plus, ArrowLeft
@@ -7,7 +7,8 @@ import {
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import useAuthStore from '../../store/authStore';
-import NewRequestWizard from '../../components/wizard/NewRequestWizard';
+// MODIFICA: Importo il nuovo wrapper specifico per Dottore
+import WizardRequestDoctor from '../../components/wizard/WizardRequestDoctor';
 
 export default function LavorazioniDottore() {
   const user = useAuthStore(state => state.user);
@@ -141,7 +142,8 @@ export default function LavorazioniDottore() {
              </div>
 
              <div className="bg-white/50 rounded-3xl">
-                <NewRequestWizard 
+                {/* Wizard Component - NUOVA VERSIONE */}
+                <WizardRequestDoctor 
                     onCancel={() => setIsWizardOpen(false)}
                     onSubmit={handleNewRequestSubmit}
                 />

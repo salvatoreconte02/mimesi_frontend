@@ -1,33 +1,32 @@
 import { motion } from 'framer-motion';
-import { User, Building, AlertCircle } from 'lucide-react';
+import { User, Building } from 'lucide-react';
 import Button from '../ui/Button';
 
-export default function StepPatient({ formData, setFormData, onNext, isAdmin, originalData }) {
+export default function StepPatient({ 
+  formData, setFormData, 
+  onNext, 
+  isAdmin, 
+  originalData,
+  readOnlyDoctorData = false // NUOVA PROP: Se true, i campi dottore sono disabilitati
+}) {
   
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  // HELPER PER HIGHLIGHT MODIFICHE
-  // Ritorna una stringa di classi CSS se il valore è cambiato
   const getDiffClass = (fieldName) => {
-      if (!isAdmin || !originalData) return 'border-neutral-200 bg-neutral-50'; // Default
-      
+      if (!isAdmin || !originalData) return 'border-neutral-200 bg-neutral-50';
       const currentVal = formData[fieldName];
-      // Nota: Per campi "formData" che non sono nell'oggetto root originale (es. nomeDottore), 
-      // originalData[fieldName] funziona se originalData è l'oggetto intero salvato.
       const originalVal = originalData[fieldName];
-
-      // Confronto debole per gestire null/undefined vs stringa vuota
       if (currentVal != originalVal) {
-          return 'border-orange-300 bg-orange-50 ring-1 ring-orange-200'; // Stile "Modificato"
+          return 'border-orange-300 bg-orange-50 ring-1 ring-orange-200';
       }
-      return 'border-neutral-200 bg-neutral-50'; // Stile "Invariato"
+      return 'border-neutral-200 bg-neutral-50';
   };
 
-  // Validazione
   const isCodiceValid = formData.codicePaziente && formData.codicePaziente.trim().length > 0;
+  // Se è Admin in validazione, i campi dottore sono già compilati, quindi validi.
   const isDoctorValid = !isAdmin || (formData.nomeDottore?.trim() && formData.cognomeDottore?.trim() && formData.nomeStudio?.trim());
   const canProceed = isCodiceValid && isDoctorValid;
 
@@ -37,13 +36,26 @@ export default function StepPatient({ formData, setFormData, onNext, isAdmin, or
       {/* SEZIONE ADMIN (Dottore/Studio) */}
       {isAdmin && (
         <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm">
-            <h4 className="font-bold text-sm text-neutral-800 mb-4 flex items-center gap-2"><Building size={18}/> Dati Richiedente</h4>
+            <div className="flex justify-between items-center mb-4">
+                <h4 className="font-bold text-sm text-neutral-800 flex items-center gap-2">
+                    <Building size={18}/> Dati Richiedente
+                </h4>
+                {readOnlyDoctorData && (
+                    <span className="text-[10px] uppercase font-bold bg-neutral-100 text-neutral-500 px-2 py-1 rounded">
+                        Sola Lettura
+                    </span>
+                )}
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label className="text-xs font-bold text-neutral-500 uppercase mb-1 block">Nome Dottore</label>
                     <input 
                         type="text" name="nomeDottore"
-                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 ${getDiffClass('nomeDottore')}`}
+                        disabled={readOnlyDoctorData} // DISABILITA IN VALIDAZIONE
+                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 
+                            ${getDiffClass('nomeDottore')} 
+                            ${readOnlyDoctorData ? 'opacity-60 cursor-not-allowed bg-neutral-100' : ''}`}
                         value={formData.nomeDottore} onChange={handleChange} 
                     />
                 </div>
@@ -51,7 +63,10 @@ export default function StepPatient({ formData, setFormData, onNext, isAdmin, or
                     <label className="text-xs font-bold text-neutral-500 uppercase mb-1 block">Cognome Dottore</label>
                     <input 
                         type="text" name="cognomeDottore"
-                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 ${getDiffClass('cognomeDottore')}`}
+                        disabled={readOnlyDoctorData}
+                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 
+                            ${getDiffClass('cognomeDottore')}
+                            ${readOnlyDoctorData ? 'opacity-60 cursor-not-allowed bg-neutral-100' : ''}`}
                         value={formData.cognomeDottore} onChange={handleChange} 
                     />
                 </div>
@@ -59,7 +74,10 @@ export default function StepPatient({ formData, setFormData, onNext, isAdmin, or
                     <label className="text-xs font-bold text-neutral-500 uppercase mb-1 block">Studio</label>
                     <input 
                         type="text" name="nomeStudio"
-                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 ${getDiffClass('nomeStudio')}`}
+                        disabled={readOnlyDoctorData}
+                        className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 
+                            ${getDiffClass('nomeStudio')}
+                            ${readOnlyDoctorData ? 'opacity-60 cursor-not-allowed bg-neutral-100' : ''}`}
                         value={formData.nomeStudio} onChange={handleChange} 
                     />
                 </div>
@@ -93,7 +111,6 @@ export default function StepPatient({ formData, setFormData, onNext, isAdmin, or
           <div className="grid grid-cols-3 gap-4">
              <div className="col-span-1">
                <label className="text-xs font-bold text-primary uppercase mb-1 block">Codice Paziente *</label>
-               {/* Il Codice Paziente non dovrebbe cambiare spesso, ma se cambia lo evidenziamo */}
                <input 
                  type="text" name="codicePaziente"
                  className={`w-full p-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 font-bold 

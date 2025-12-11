@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check } from 'lucide-react'; // Icone per UI
+import { X, Check } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 import StepPatient from './StepPatient';
@@ -10,21 +10,26 @@ import StepSummary from './StepSummary';
 import StepQuote from './StepQuote'; 
 import DocumentPreview from '../documents/DocumentPreview';
 
-export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, initialData = null, mode = 'create' }) {
+// COMPONENTE "MOTORE" - Gestisce stato e navigazione, ma è configurato dall'esterno
+export default function WizardCore({ 
+    onCancel, 
+    onSubmit, 
+    onStepChange, 
+    initialData = null, 
+    
+    // Props di configurazione
+    stepsList = ['Paziente', 'Lavorazione', 'Files', 'Riepilogo'],
+    isAdmin = false,
+    readOnlyDoctorData = false,
+    showQuoteStep = false,
+    showApprovalStep = false,
+    title = "Nuova Prescrizione"
+}) {
   const user = useAuthStore((state) => state.user);
-  const isAdminUser = user?.role === 'admin';
-  const isAdminProcess = mode === 'admin' || isAdminUser;
-
   const [step, setStep] = useState(1);
-
-  // --- CONFIGURAZIONE STEP VISIVI ---
-  const stepsList = isAdminProcess 
-    ? ['Paziente', 'Lavorazione', 'Files', 'Riepilogo', 'Preventivo', 'Approvazione']
-    : ['Paziente', 'Lavorazione', 'Files', 'Riepilogo'];
-
   const currentStepLabel = stepsList[step - 1];
 
-  // --- DEEP COPY E INIZIALIZZAZIONE ---
+  // --- STATO ---
   const safeInitialData = initialData ? JSON.parse(JSON.stringify(initialData)) : null;
 
   const getInitialState = (key, defaultVal) => {
@@ -32,9 +37,9 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
       
       if (key === 'formData') {
           return {
-              nomeDottore: safeInitialData.nomeDottore || (!isAdminUser ? user?.nome : ''),
-              cognomeDottore: safeInitialData.cognomeDottore || (!isAdminUser ? user?.cognome : ''),
-              nomeStudio: safeInitialData.nomeStudio || (!isAdminUser ? (user?.studio || '') : ''),
+              nomeDottore: safeInitialData.nomeDottore || (!isAdmin ? user?.nome : ''),
+              cognomeDottore: safeInitialData.cognomeDottore || (!isAdmin ? user?.cognome : ''),
+              nomeStudio: safeInitialData.nomeStudio || (!isAdmin ? (user?.studio || '') : ''),
               
               nome: safeInitialData.nome || '', 
               cognome: safeInitialData.cognome || '', 
@@ -52,9 +57,9 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
   };
 
   const [formData, setFormData] = useState(() => getInitialState('formData', {
-    nomeDottore: !isAdminUser ? user?.nome : '',
-    cognomeDottore: !isAdminUser ? user?.cognome : '',
-    nomeStudio: !isAdminUser ? (user?.studio || '') : '', 
+    nomeDottore: !isAdmin ? user?.nome : '',
+    cognomeDottore: !isAdmin ? user?.cognome : '',
+    nomeStudio: !isAdmin ? (user?.studio || '') : '', 
     nome: '', cognome: '', codicePaziente: '', eta: '', sesso: 'M',
     allergie: false, bruxismo: false, disfunzioni: false, dispositivi: false, handicap: false
   }));
@@ -65,10 +70,8 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
 
   const [configuredElements, setConfiguredElements] = useState(() => getInitialState('elements', []));
   const [dates, setDates] = useState(() => getInitialState('dates', { delivery: '', tryIn1: '', tryIn2: '', tryIn3: '' }));
-  
   const [files, setFiles] = useState(() => safeInitialData?.filesMetadata || []); 
   const [photos, setPhotos] = useState(() => safeInitialData?.photosMetadata || []); 
-
   const [impressionParams, setImpressionParams] = useState(() => getInitialState('impressionParams', { material: '', disinfection: '' }));
   const [quote, setQuote] = useState({ total: 0, details: {} });
 
@@ -100,7 +103,7 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
       impressionParams,
       filesMetadata, 
       photosMetadata,
-      quote: isAdminProcess ? quote : null,
+      quote: showQuoteStep ? quote : null, // Salva quote solo se lo step era attivo
       adminAction: safeActionType,
       status: safeActionType === 'send_to_doctor' ? 'waiting_signature' : 'approved',
       timestamp: new Date().toISOString()
@@ -112,19 +115,16 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col min-h-[600px]">
       
-      {/* --- HEADER WIZARD CON STEPS --- */}
+      {/* HEADER WIZARD */}
       <div className="px-8 py-6 border-b border-neutral-100 flex justify-between items-center bg-white sticky top-0 z-20">
         <div>
-           <h2 className="text-2xl font-bold text-neutral-800">
-             {isAdminProcess ? 'Validazione Tecnica' : 'Nuova Prescrizione'}
-           </h2>
+           <h2 className="text-2xl font-bold text-neutral-800">{title}</h2>
            <p className="text-sm text-neutral-500 mt-1">
              Step {step} di {stepsList.length}: <span className="font-bold text-primary">{currentStepLabel}</span>
            </p>
         </div>
 
         <div className="flex items-center gap-6">
-           {/* Visualizzatore Steps in Alto a Destra */}
            <div className="flex items-center gap-2">
               {stepsList.map((_, idx) => {
                  const stepNum = idx + 1;
@@ -140,7 +140,6 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
                       `}>
                          {isCompleted ? <Check size={14}/> : stepNum}
                       </div>
-                      {/* Linea connettore */}
                       {idx < stepsList.length - 1 && (
                         <div className={`w-6 h-0.5 mx-1 ${isCompleted ? 'bg-green-100' : 'bg-neutral-100'}`} />
                       )}
@@ -149,16 +148,15 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
               })}
            </div>
 
-           {/* Tasto Chiudi */}
            <button onClick={onCancel} className="p-2 hover:bg-neutral-100 rounded-full text-neutral-400 transition-colors">
               <X size={24} />
            </button>
         </div>
       </div>
 
-      {/* --- CONTENUTO WIZARD --- */}
+      {/* BODY WIZARD */}
       <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
-        {isAdminProcess && safeInitialData && (
+        {isAdmin && safeInitialData && (
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6 text-blue-800 text-sm flex justify-between items-center">
                 <div>
                     <strong>Revisione Richiesta {safeInitialData.id}</strong>
@@ -173,7 +171,8 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
                     key="step1" 
                     formData={formData} setFormData={setFormData} 
                     onNext={next} 
-                    isAdmin={isAdminProcess}
+                    isAdmin={isAdmin}
+                    readOnlyDoctorData={readOnlyDoctorData} // PROP CONFIGURABILE
                     originalData={safeInitialData} 
                 />
             )}
@@ -185,7 +184,7 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
                 technicalInfo={technicalInfo} setTechnicalInfo={setTechnicalInfo} 
                 dates={dates} setDates={setDates}
                 onBack={back} onNext={next}
-                isAdmin={isAdminProcess}
+                isAdmin={isAdmin}
             />
             )}
 
@@ -206,12 +205,11 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
                 technicalInfo={technicalInfo} dates={dates}
                 files={files} photos={photos} impressionParams={impressionParams}
                 onBack={back}
-                onSubmit={isAdminProcess ? next : handleFinalSubmit} 
-                mode={mode} 
+                onSubmit={showQuoteStep ? next : handleFinalSubmit} 
             />
             )}
 
-            {isAdminProcess && step === 5 && (
+            {showQuoteStep && step === 5 && (
                 <StepQuote 
                     key="step5"
                     data={{ formData, technicalInfo, elements: configuredElements, dates }}
@@ -220,7 +218,7 @@ export default function NewRequestWizard({ onCancel, onSubmit, onStepChange, ini
                 />
             )}
 
-            {isAdminProcess && step === 6 && (
+            {showApprovalStep && step === 6 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                     <div className="bg-neutral-100 p-4 rounded-xl border border-neutral-200 overflow-y-auto max-h-[600px] flex justify-center custom-scrollbar">
                         <DocumentPreview 

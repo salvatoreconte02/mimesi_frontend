@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Search, FileText, CheckCircle, Clock, 
   AlertCircle, ChevronRight, Calendar, AlertTriangle, Plus, ArrowLeft 
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button'; 
-import NewRequestWizard from '../../components/wizard/NewRequestWizard'; 
+// MODIFICA: Importo il nuovo wrapper specifico per Admin
+import WizardRequestAdmin from '../../components/wizard/WizardRequestAdmin'; 
 
 export default function LavorazioniAdmin() {
   const [filter, setFilter] = useState('tutti');
@@ -176,11 +177,10 @@ export default function LavorazioniAdmin() {
                     </div>
                 </div>
 
-                {/* Wizard Component */}
+                {/* Wizard Component - NUOVA VERSIONE */}
                 <div className="bg-white/50 rounded-3xl">
-                     <NewRequestWizard 
-                        mode={isCreating ? 'create' : 'admin'}
-                        initialData={editingJob} 
+                     <WizardRequestAdmin
+                        initialData={editingJob} // Se è null (isCreating), il wrapper attiva la modalità Creazione
                         onCancel={() => { setIsCreating(false); setEditingJob(null); }}
                         onSubmit={isCreating ? handleCreateSubmit : handleValidationSubmit}
                      />
