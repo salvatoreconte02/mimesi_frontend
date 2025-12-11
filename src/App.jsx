@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useAuthStore from './store/authStore';
 import SidebarDottore from './components/layout/SidebarDottore';
 import SidebarAdmin from './components/layout/SidebarAdmin';
+import Sidebar from './components/layout/Sidebar'; // Aggiungo import per sicurezza se usato
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 import { initializeMockData } from './mockData';
@@ -63,20 +64,16 @@ function App() {
 
   // LOGICA DI ROUTING CENTRALIZZATA
   const renderContent = () => {
-    
-    // 1. PAGINE SPECIFICHE (Es. Lavorazioni, Inbox)
     if (page === 'lavorazioni') {
        if (user?.role === 'dottore') return <LavorazioniDottore />;
        if (user?.role === 'admin') return <LavorazioniAdmin />;
     }
 
-    // --- ROTTA INBOX ---
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
         if (user?.role === 'admin') return <InboxAdmin />;
     }
 
-    // 2. DASHBOARD (Differenziata per ruolo)
     if (page === 'dashboard') {
         switch(user?.role) {
             case 'admin':
@@ -84,11 +81,10 @@ function App() {
             case 'dottore':
                 return <DashboardDottore setPage={setPage} />;
             default:
-                return <DashboardGeneric />; // Fallback per Operatore
+                return <DashboardGeneric />; 
         }
     }
 
-    // 3. PAGINE NON ANCORA IMPLEMENTATE (Placeholder)
     return (
         <div className="p-8 flex items-center justify-center h-screen opacity-50">
             <div className="text-center">
@@ -100,11 +96,16 @@ function App() {
   };
 
   // Seleziona la sidebar corretta in base al ruolo
-  const SidebarComponent = user?.role === 'admin' ? SidebarAdmin : SidebarDottore;
+  // NOTA: Se non è admin o dottore, usiamo la Sidebar generica (utile per 'operatore')
+  let SidebarComponent;
+  if (user?.role === 'admin') SidebarComponent = SidebarAdmin;
+  else if (user?.role === 'dottore') SidebarComponent = SidebarDottore;
+  else SidebarComponent = Sidebar;
 
   return (
     <div className="bg-neutral-50 min-h-screen pl-64">
-      <SidebarComponent setPage={setPage} />
+      {/* MODIFICA: Passo 'page' qui sotto */}
+      <SidebarComponent setPage={setPage} page={page} />
       <main className="min-h-screen">
         {renderContent()}
       </main>
