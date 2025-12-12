@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Activity, FileSignature, Clock, ChevronRight, 
-  MessageSquare, Plus // Aggiungi Plus
-} from 'lucide-react';
+import { ChevronRight, MessageSquare, Plus, Activity, FileSignature, Clock } from 'lucide-react';
 import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button'; // Import Button
+import Button from '../../components/ui/Button';
 import useAuthStore from '../../store/authStore';
+import StatusWorkWidget, { COLOR_PRESETS } from '../../components/ui/StatusWorkWidget';
 
 export default function DashboardDottore({ setPage }) {
   const user = useAuthStore((state) => state.user);
   
+  // Stati per le statistiche
   const [stats, setStats] = useState({
     working: 0,
     pending: 0,
@@ -20,25 +18,42 @@ export default function DashboardDottore({ setPage }) {
   const [recentMessages, setRecentMessages] = useState([]);
 
   useEffect(() => {
-    // 1. Carica Lavorazioni
-    const allJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
-    const myJobs = allJobs.filter(j => 
-        j.dottore === `${user?.nome} ${user?.cognome}` || j.dottore === user?.name
-    );
+    const loadData = () => {
+      // 1. Carica Lavorazioni
+      const allJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+      
+      // Filtra le lavorazioni del dottore corrente
+      const myJobs = allJobs.filter(j => {
+        const doctorField = j.dottore || '';
+        // Controlla vari formati possibili del nome dottore
+        return doctorField === `Dr. ${user?.nome} ${user?.cognome}` || 
+               doctorField === user?.name ||
+               (user?.nome && user?.cognome && doctorField.includes(`${user.nome} ${user.cognome}`));
+      });
 
-    setStats({
-      working: myJobs.filter(j => j.stato === 'working').length,
-      pending: myJobs.filter(j => j.stato === 'pending').length,
-      evaluation: myJobs.filter(j => j.stato === 'in_evaluation').length
-    });
+      // Calcola le statistiche
+      setStats({
+        working: myJobs.filter(j => j.stato === 'working').length,
+        pending: myJobs.filter(j => j.stato === 'pending').length,
+        evaluation: myJobs.filter(j => j.stato === 'in_evaluation').length
+      });
 
-    setRecentJobs(myJobs.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 3));
+      // Prendi i 3 lavori più recenti
+      setRecentJobs(myJobs.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 3));
 
-    // 2. Carica Messaggi Inbox
-    const inbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
-    setRecentMessages(inbox.slice(0, 4));
+      // 2. Carica Messaggi Inbox
+      const inbox = JSON.parse(localStorage.getItem('mimesi_doctor_inbox') || '[]');
+      setRecentMessages(inbox.slice(0, 4));
+    };
 
-  }, [user]);
+    // Carica subito i dati
+    loadData();
+    
+    // Polling ogni 2 secondi per aggiornare automaticamente
+    const interval = setInterval(loadData, 2000);
+    
+    return () => clearInterval(interval);
+  }, [user?.nome, user?.cognome, user?.name]);
 
   const navigateTo = (page, paramKey, paramValue) => {
       if (paramKey && paramValue) {
@@ -47,9 +62,7 @@ export default function DashboardDottore({ setPage }) {
       setPage(page);
   };
 
-  // NUOVA FUNZIONE PER GESTIRE IL CLICK
   const handleNewPrescription = () => {
-    // Salviamo un flag in sessione per dire alla pagina Lavorazioni di aprire il wizard
     sessionStorage.setItem('mimesi_open_wizard', 'true');
     setPage('lavorazioni');
   };
@@ -57,14 +70,13 @@ export default function DashboardDottore({ setPage }) {
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen space-y-8">
       
-      {/* HEADER DI BENVENUTO MODIFICATO */}
+      {/* HEADER DI BENVENUTO */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Bentornato, Dr. {user?.cognome}</h1>
           <p className="text-neutral-500 mt-1">Ecco il riepilogo delle attività del tuo studio.</p>
         </div>
         
-        {/* SOSTITUITO DATA CON BOTTONE */}
         <div className="shrink-0">
           <Button onClick={handleNewPrescription} className="shadow-lg shadow-primary/30">
              <Plus size={20} className="mr-2" /> Nuova Prescrizione
@@ -72,64 +84,38 @@ export default function DashboardDottore({ setPage }) {
         </div>
       </div>
 
-      {/* STATISTICHE */}
+      {/* STATISTICHE CON STATUS WORK WIDGET */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* CARD 1: IN LAVORAZIONE */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.working}
+          icon={Activity}
+          label="Lavorazioni in corso"
+          colorClasses={COLOR_PRESETS.primary}
+          badge="active"
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'attivi')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-primary/30 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-              <Activity size={24} />
-            </div>
-            <span className="flex items-center text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-               Attive
-            </span>
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.working}</h3>
-          <p className="text-sm text-neutral-500 font-medium">Lavorazioni in corso</p>
-        </motion.div>
+        />
 
         {/* CARD 2: DA FIRMARE */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.pending}
+          icon={FileSignature}
+          label="Preventivi da firmare"
+          colorClasses={COLOR_PRESETS.orange}
+          badge="action"
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'da_firmare')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-orange-300 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
-              <FileSignature size={24} />
-            </div>
-            {stats.pending > 0 && (
-                <span className="flex items-center text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full animate-pulse">
-                Richiede Azione
-                </span>
-            )}
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.pending}</h3>
-          <p className="text-sm text-neutral-500 font-medium">Preventivi da firmare</p>
-        </motion.div>
+        />
 
         {/* CARD 3: IN VALUTAZIONE */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.evaluation}
+          icon={Clock}
+          label="In Valutazione Tecnica"
+          colorClasses={COLOR_PRESETS.blue}
+          badge="In attesa"
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'in_valutazione')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-blue-300 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Clock size={24} />
-            </div>
-            <span className="flex items-center text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-               In attesa
-            </span>
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.evaluation}</h3>
-          <p className="text-sm text-neutral-500 font-medium">In Valutazione Tecnica</p>
-        </motion.div>
+        />
 
       </div>
 

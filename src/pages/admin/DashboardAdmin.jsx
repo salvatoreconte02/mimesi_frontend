@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Activity, Clock, AlertCircle, Package, Users, 
   ChevronRight, Mail, CheckCircle, FileText
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import useAuthStore from '../../store/authStore';
+import StatusWorkWidget, { COLOR_PRESETS } from '../../components/ui/StatusWorkWidget';
 
 export default function DashboardAdmin({ setPage }) {
   const user = useAuthStore((state) => state.user);
   
+  // Stati per le statistiche
   const [stats, setStats] = useState({
     pending: 0,
     working: 0,
@@ -20,23 +21,33 @@ export default function DashboardAdmin({ setPage }) {
   const [recentMessages, setRecentMessages] = useState([]);
 
   useEffect(() => {
-    // 1. Carica Lavorazioni
-    const allJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+    const loadData = () => {
+      // 1. Carica Lavorazioni
+      const allJobs = JSON.parse(localStorage.getItem('mimesi_all_lavorazioni') || '[]');
+      
+      // Calcola le statistiche
+      setStats({
+        pending: allJobs.filter(j => j.stato === 'in_evaluation' || j.stato === 'pending').length,
+        working: allJobs.filter(j => j.stato === 'working').length,
+        warning: allJobs.filter(j => j.stato === 'warning').length,
+        completed: allJobs.filter(j => j.stato === 'completed').length
+      });
+
+      // Prendi i primi 3 lavori più recenti
+      setRecentJobs(allJobs.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 3));
+
+      // 2. Carica Messaggi Inbox Admin
+      const inbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
+      setRecentMessages(inbox.slice(0, 4)); 
+    };
+
+    // Carica subito i dati
+    loadData();
     
-    setStats({
-      pending: allJobs.filter(j => j.stato === 'in_evaluation' || j.stato === 'pending').length,
-      working: allJobs.filter(j => j.stato === 'working').length,
-      warning: allJobs.filter(j => j.stato === 'warning').length,
-      completed: allJobs.filter(j => j.stato === 'completed').length
-    });
-
-    // Prendi i primi 3 lavori più recenti
-    setRecentJobs(allJobs.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 3));
-
-    // 2. Carica Messaggi Inbox Admin
-    const inbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
-    setRecentMessages(inbox.slice(0, 4)); 
-
+    // Polling ogni 2 secondi per aggiornare automaticamente
+    const interval = setInterval(loadData, 2000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // --- FUNZIONE DI NAVIGAZIONE SMART ---
@@ -62,73 +73,45 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* STATISTICHE (LINK FILTRATI A LAVORAZIONI) */}
+      {/* STATISTICHE CON STATUS WORK WIDGET */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         
         {/* CARD 1: DA VALUTARE */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.pending}
+          icon={AlertCircle}
+          label="Da Valutare"
+          colorClasses={COLOR_PRESETS.blue}
+          badge="action"
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'da_valutare')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-blue-300 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <AlertCircle size={24} />
-            </div>
-            {stats.pending > 0 && (
-                <span className="flex items-center text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full animate-pulse">
-                Azione Richiesta
-                </span>
-            )}
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.pending}</h3>
-          <p className="text-sm text-neutral-500 font-medium">Da Valutare</p>
-        </motion.div>
+        />
 
         {/* CARD 2: IN LAVORAZIONE */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.working}
+          icon={Activity}
+          label="In Produzione"
+          colorClasses={COLOR_PRESETS.primary}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'attivi')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-primary/30 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-              <Activity size={24} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.working}</h3>
-          <p className="text-sm text-neutral-500 font-medium">In Produzione</p>
-        </motion.div>
+        />
 
         {/* CARD 3: IN PROVA */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.warning}
+          icon={Clock}
+          label="In Prova / Attesa"
+          colorClasses={COLOR_PRESETS.orange}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'in_prova')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-orange-300 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
-              <Clock size={24} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.warning}</h3>
-          <p className="text-sm text-neutral-500 font-medium">In Prova / Attesa</p>
-        </motion.div>
+        />
 
         {/* CARD 4: COMPLETATI */}
-        <motion.div 
-          whileHover={{ y: -5 }}
+        <StatusWorkWidget
+          count={stats.completed}
+          icon={CheckCircle}
+          label="Archiviate"
+          colorClasses={COLOR_PRESETS.success}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'completati')}
-          className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer hover:border-green-300 group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <CheckCircle size={24} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-bold text-neutral-800 mb-1">{stats.completed}</h3>
-          <p className="text-sm text-neutral-500 font-medium">Archiviate</p>
-        </motion.div>
+        />
 
       </div>
 
