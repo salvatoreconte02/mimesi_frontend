@@ -79,7 +79,7 @@ export default function LavorazioniAdmin() {
         doctorInbox.unshift({
           id: Date.now(),
           from: 'Mimesi Lab - Amministrazione',
-          subject: `✓ Lavorazione Avviata: ${patientName}`,
+          subject: `✓ Lavorazione Avviata: ${data.id}`,
           preview: `Gentile ${doctorName}, La informiamo che la lavorazione per il paziente ${patientName} (Rif. ${data.id}) è stata approvata e avviata in produzione in data ${currentDate}. Tipologia: ${totalElements} elemento/i in ${materialLabel}. La lavorazione procederà secondo le specifiche tecniche concordate. Riceverà aggiornamenti sullo stato di avanzamento.`,
           date: new Date().toISOString(),
           read: false,
@@ -92,7 +92,7 @@ export default function LavorazioniAdmin() {
       adminInbox.unshift({
         id: Date.now() + 1,
         from: 'Sistema',
-        subject: `✓ Lavorazione Avviata: ${patientName}`,
+        subject: `✓ Lavorazione Avviata: ${data.id}`,
         preview: `Lavorazione ${data.id} approvata internamente e avviata in produzione. Paziente: ${patientName}. ${doctorName !== 'Interno' ? `Richiedente: ${doctorName} (${studioName}).` : 'Lavorazione interna.'} Tipologia: ${totalElements} elem. in ${materialLabel}.`,
         date: new Date().toISOString(),
         read: false,
@@ -109,8 +109,8 @@ export default function LavorazioniAdmin() {
       doctorInbox.unshift({
         id: Date.now(),
         from: 'Mimesi Lab - Amministrazione',
-        subject: `📋 Richiesta Firma Preventivo: ${patientName}`,
-        preview: `Gentile ${doctorName}, il preventivo per la lavorazione relativa al paziente ${patientName} (Rif. ${data.id}) è pronto per la Sua approvazione. Tipologia: ${totalElements} elemento/i in ${materialLabel}. Importo totale: € ${quoteTotal}. La preghiamo di visionare il preventivo e procedere con la firma digitale per avviare la produzione.`,
+        subject: `📋 Richiesta Firma Preventivo: ${data.id}`,
+        preview: `Gentile ${doctorName}, il preventivo per la lavorazione relativa al paziente ${patientName} (${data.id}) è pronto per la Sua approvazione. Tipologia: ${totalElements} elemento/i in ${materialLabel}. Importo totale: € ${quoteTotal}. La preghiamo di visionare il preventivo e procedere con la firma digitale per avviare la produzione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -122,7 +122,7 @@ export default function LavorazioniAdmin() {
       adminInbox.unshift({
         id: Date.now() + 1,
         from: 'Sistema',
-        subject: `📤 Preventivo Inviato: ${patientName}`,
+        subject: `📤 Preventivo Inviato: ${data.id}`,
         preview: `Preventivo per lavorazione ${data.id} inviato a ${doctorName} (${studioName}) per approvazione. Paziente: ${patientName}. Tipologia: ${totalElements} elem. in ${materialLabel}. Importo: € ${quoteTotal}. In attesa di firma digitale.`,
         date: new Date().toISOString(),
         read: false,

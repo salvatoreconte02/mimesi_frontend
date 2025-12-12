@@ -71,8 +71,8 @@ export default function LavorazioniDottore() {
     doctorInbox.unshift({
         id: Date.now(),
         from: 'Mimesi Lab System',
-        subject: `Riepilogo Richiesta: ${data.cognome} ${data.nome}`,
-        preview: `Gentile Dr. ${data.cognomeDottore}, confermiamo la ricezione della Sua prescrizione per il paziente ${data.cognome} ${data.nome} (Rif. ${data.id}). La richiesta è ora in fase di valutazione tecnica presso il nostro laboratorio. Riceverà notifica non appena il preventivo sarà pronto per la Sua approvazione.`,
+        subject: `Riepilogo Richiesta: ${data.id}`,
+        preview: `Gentile Dr. ${data.cognomeDottore}, confermiamo la ricezione della Sua prescrizione per il paziente ${data.cognome} ${data.nome} (${data.id}). La richiesta è ora in fase di valutazione tecnica presso il nostro laboratorio. Riceverà notifica non appena il preventivo sarà pronto per la Sua approvazione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -85,7 +85,7 @@ export default function LavorazioniDottore() {
     adminInbox.unshift({
         id: Date.now() + 1,
         from: `Dr. ${data.nomeDottore} ${data.cognomeDottore}`,
-        subject: `Nuova Prescrizione: ${data.cognome} ${data.nome}`,
+        subject: `Nuova Prescrizione: ${data.id}`,
         preview: `Nuova richiesta di lavorazione ricevuta. Paziente: ${data.cognome} ${data.nome}. Tipologia: ${data.elements?.length || 0} elemento/i in ${data.technicalInfo?.material || 'N/D'}. Studio: ${data.nomeStudio || 'N/D'}. In attesa di validazione tecnica e preventivo.`,
         date: new Date().toISOString(),
         read: false,

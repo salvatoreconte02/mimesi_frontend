@@ -131,8 +131,8 @@ export default function InboxDottore() {
     doctorInbox.unshift({
         id: Date.now(),
         from: 'Mimesi Lab - Amministrazione',
-        subject: `âœ“ Preventivo Approvato: ${patientName}`,
-        preview: `Gentile ${doctorName}, confermiamo la ricezione della Sua firma digitale per il preventivo relativo al paziente ${patientName}. La lavorazione (Rif. ${targetId}) Ã¨ stata ufficialmente avviata in data ${currentDate}. Materiale selezionato: ${materialInfo}. Importo totale confermato: â‚¬ ${quoteTotal}. RiceverÃ  aggiornamenti sullo stato di avanzamento direttamente in questa sezione. Per qualsiasi necessitÃ , il nostro team tecnico Ã¨ a Sua disposizione.`,
+        subject: `Preventivo Approvato: ${targetId}`,
+        preview: `Gentile ${doctorName}, confermiamo la ricezione della Sua firma digitale per il preventivo relativo alla richiesta (${targetId}). La lavorazione è stata ufficialmente avviata in data ${currentDate}. Materiale selezionato: ${materialInfo}. Importo totale confermato: € ${quoteTotal}. Riceverà  aggiornamenti sullo stato di avanzamento direttamente in questa sezione. Per qualsiasi necessità, il nostro team tecnico è a Sua disposizione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -144,8 +144,8 @@ export default function InboxDottore() {
     adminInbox.unshift({
         id: Date.now() + 1,
         from: doctorName,
-        subject: `âœ“ Preventivo Firmato: ${patientName}`,
-        preview: `${doctorName} (${studioName}) ha approvato e firmato digitalmente il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo confermato: â‚¬ ${quoteTotal}. Firma apposta in data ${currentDate} tramite verifica OTP. La lavorazione Ã¨ ora attiva e puÃ² procedere con la produzione.`,
+        subject: `Preventivo Firmato: ${targetId}`,
+        preview: `${doctorName} (${studioName}) ha approvato e firmato digitalmente il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo confermato: € ${quoteTotal}. Firma apposta in data ${currentDate} tramite verifica OTP. La lavorazione è ora attiva e può procedere con la produzione.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -158,7 +158,7 @@ export default function InboxDottore() {
     localStorage.setItem('mimesi_admin_inbox', JSON.stringify(adminInbox));
     setMessages(doctorInbox);
 
-    alert('âœ… Preventivo firmato con successo!\n\nLa lavorazione Ã¨ stata avviata e troverÃ  conferma nella Sua Inbox.');
+    alert('✅ Preventivo firmato con successo!\n\nLa lavorazione è stata avviata e troverà conferma nella Sua Inbox.');
     setSelectedMsg(null);
     setShowOtp(false);
     setOtpCode('');
@@ -210,8 +210,8 @@ export default function InboxDottore() {
       doctorInbox.unshift({
         id: Date.now(),
         from: 'Mimesi Lab - Amministrazione',
-        subject: `âœ— Preventivo Rifiutato: ${patientName}`,
-        preview: `Gentile ${doctorName}, confermiamo che il preventivo per il paziente ${patientName} (Rif. ${targetId}) Ã¨ stato rifiutato in data ${currentDate}. La richiesta Ã¨ stata archiviata nel sistema. Tipologia richiesta: ${materialInfo}. Importo preventivato: â‚¬ ${quoteTotal}. Se desidera procedere con una nuova richiesta o necessita di modifiche al preventivo, puÃ² creare una nuova prescrizione in qualsiasi momento. Il nostro team resta a disposizione per eventuali chiarimenti.`,
+        subject: `Preventivo Rifiutato: ${targetId}`,
+        preview: `Gentile ${doctorName}, confermiamo che il preventivo per il paziente ${patientName} (${targetId}) è stato rifiutato in data ${currentDate}. La richiesta è stata archiviata nel sistema. Tipologia richiesta: ${materialInfo}. Importo preventivato: € ${quoteTotal}. Se desidera procedere con una nuova richiesta o necessita di modifiche al preventivo, può creare una nuova prescrizione in qualsiasi momento. Il nostro team resta a disposizione per eventuali chiarimenti.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -223,8 +223,8 @@ export default function InboxDottore() {
       adminInbox.unshift({
         id: Date.now() + 1,
         from: doctorName,
-        subject: `âœ— Preventivo RIFIUTATO: ${patientName}`,
-        preview: `ATTENZIONE: ${doctorName} (${studioName}) ha rifiutato il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo proposto: â‚¬ ${quoteTotal}. Data rifiuto: ${currentDate}. La pratica Ã¨ stata automaticamente spostata nell'archivio con stato "Rifiutata". Si consiglia di contattare lo studio per comprendere le motivazioni del rifiuto e valutare eventuali proposte alternative.`,
+        subject: `Preventivo RIFIUTATO: ${targetId}`,
+        preview: `ATTENZIONE: ${doctorName} (${studioName}) ha rifiutato il preventivo per la lavorazione ${targetId}. Paziente: ${patientName}. Tipologia: ${materialInfo}. Importo proposto: € ${quoteTotal}. Data rifiuto: ${currentDate}. La pratica è stata automaticamente spostata nell'archivio con stato "Rifiutata". Si consiglia di contattare lo studio per comprendere le motivazioni del rifiuto e valutare eventuali proposte alternative.`,
         date: new Date().toISOString(),
         read: false,
         unread: true,
@@ -238,7 +238,7 @@ export default function InboxDottore() {
       
       setMessages(doctorInbox);
 
-      alert('Preventivo rifiutato.\n\nLa richiesta Ã¨ stata archiviata e il laboratorio Ã¨ stato notificato.');
+      alert('Preventivo rifiutato.\n\nLa richiesta è stata archiviata e il laboratorio è stato notificato.');
       setSelectedMsg(null);
     }
   };
@@ -357,17 +357,17 @@ export default function InboxDottore() {
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-neutral-600">Spedizioni:</span>
-                                <span className="font-bold">â‚¬ {selectedMsg.quoteData.shipmentTotal?.toFixed(2)}</span>
+                                <span className="font-bold">{'\u20AC'} {selectedMsg.quoteData.shipmentTotal?.toFixed(2)}</span>
                               </div>
                               {selectedMsg.quoteData.manualAdjustment !== 0 && (
                                 <div className="flex justify-between text-neutral-500 italic">
                                     <span>Variazione / Sconto:</span>
-                                    <span>â‚¬ {Number(selectedMsg.quoteData.manualAdjustment).toFixed(2)}</span>
+                                    <span>{'\u20AC'} {Number(selectedMsg.quoteData.manualAdjustment).toFixed(2)}</span>
                                 </div>
                               )}
                               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between text-lg">
                                 <span className="text-primary font-bold">TOTALE ORDINE:</span>
-                                <span className="text-primary font-bold">â‚¬ {selectedMsg.quoteData.total?.toFixed(2)}</span>
+                                <span className="text-primary font-bold">{'\u20AC'} {selectedMsg.quoteData.total?.toFixed(2)}</span>
                               </div>
                             </div>
                          </div>
