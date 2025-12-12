@@ -30,7 +30,6 @@ export default function WizardCore({
   const currentStepLabel = stepsList[step - 1];
 
   // --- STATO ---
-  // Cloniamo i dati iniziali per averli come riferimento "originale" per il confronto (Diff)
   const safeInitialData = initialData ? JSON.parse(JSON.stringify(initialData)) : null;
 
   const getInitialState = (key, defaultVal) => {
@@ -74,7 +73,17 @@ export default function WizardCore({
   const [files, setFiles] = useState(() => safeInitialData?.filesMetadata || []); 
   const [photos, setPhotos] = useState(() => safeInitialData?.photosMetadata || []); 
   const [impressionParams, setImpressionParams] = useState(() => getInitialState('impressionParams', { material: '', disinfection: '' }));
-  const [quote, setQuote] = useState({ total: 0, details: {} });
+  
+  // FIX: Inizializza quote con tutti i campi a 0
+  const [quote, setQuote] = useState(() => safeInitialData?.quote || { 
+      total: 0, 
+      elementsTotal: 0, 
+      shipmentTotal: 0,
+      shipmentCount: 0, 
+      elementCount: 0,
+      groupCount: 0,
+      groupPrices: [] 
+  });
 
   const next = () => setStep(s => s + 1);
   const back = () => setStep(s => s - 1);
@@ -186,7 +195,7 @@ export default function WizardCore({
                     dates={dates} setDates={setDates}
                     onBack={back} onNext={next}
                     isAdmin={isAdmin}
-                    originalData={safeInitialData} // PASSATO
+                    originalData={safeInitialData}
                 />
             )}
 
@@ -197,8 +206,8 @@ export default function WizardCore({
                     photos={photos} setPhotos={setPhotos}
                     impressionParams={impressionParams} setImpressionParams={setImpressionParams}
                     onBack={back} onNext={next} 
-                    isAdmin={isAdmin} // PASSATO
-                    originalData={safeInitialData} // PASSATO
+                    isAdmin={isAdmin}
+                    originalData={safeInitialData}
                 />
             )}
 
@@ -210,7 +219,7 @@ export default function WizardCore({
                     files={files} photos={photos} impressionParams={impressionParams}
                     onBack={back}
                     onSubmit={showQuoteStep ? next : handleFinalSubmit} 
-                    originalData={safeInitialData} // PASSATO
+                    originalData={safeInitialData}
                 />
             )}
 
@@ -225,10 +234,19 @@ export default function WizardCore({
 
             {showApprovalStep && step === 6 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                    <div className="bg-neutral-100 p-4 rounded-xl border border-neutral-200 overflow-y-auto max-h-[600px] flex justify-center custom-scrollbar">
+                    <div className="bg-neutral-100 p-4 rounded-xl border border-neutral-200 overflow-y-auto max-h-[700px] custom-scrollbar">
                         <DocumentPreview 
-                            data={{ ...formData, id: safeInitialData?.id || 'BOZZA', technicalInfo, elements: configuredElements, dates, nomeDottore: formData.nomeDottore }} 
-                            quote={quote} 
+                            data={{ 
+                                ...formData, 
+                                id: safeInitialData?.id || 'BOZZA', 
+                                technicalInfo, 
+                                elements: configuredElements, 
+                                dates, 
+                                nomeDottore: formData.nomeDottore,
+                                cognomeDottore: formData.cognomeDottore 
+                            }} 
+                            quote={quote}
+                            setQuote={setQuote}
                         />
                     </div>
                     <div className="flex justify-between pt-4 border-t">

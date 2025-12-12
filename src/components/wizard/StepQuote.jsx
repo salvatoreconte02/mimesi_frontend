@@ -15,7 +15,7 @@ const BASE_PRICES = {
 
 const SHIPMENT_COST = 8;
 
-export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
+export default function StepQuote({ data, quote, setQuote, onBack, onNext, hideNavigation = false }) {
   // Stato per i prezzi personalizzati di ogni gruppo
   const [groupPrices, setGroupPrices] = useState([]);
   const [editingGroupId, setEditingGroupId] = useState(null);
@@ -26,13 +26,13 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
     const basePrice = BASE_PRICES[mat] || 100;
     
     // Crea un array di prezzi per ogni gruppo
-    const initialPrices = data.elements.map((group, idx) => ({
+    const initialPrices = (data.elements || []).map((group, idx) => ({
       groupId: group.id || idx,
       groupIndex: group.groupIndex ?? idx,
-      teeth: group.teeth,
+      teeth: group.teeth || [],
       isBridge: group.isBridge,
       unitPrice: basePrice,
-      elementCount: group.teeth.length
+      elementCount: group.teeth?.length || 0
     }));
     
     setGroupPrices(initialPrices);
@@ -95,18 +95,20 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
       
-      {/* HEADER */}
-      <div className="flex items-center gap-3 pb-4 border-b border-neutral-100">
-        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Calculator className="text-primary" size={24} />
+      {/* HEADER - Nascosto se dentro DocumentPreview */}
+      {!hideNavigation && (
+        <div className="flex items-center gap-3 pb-4 border-b border-neutral-100">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Calculator className="text-primary" size={24} />
+          </div>
+          <div>
+            <h3 className="font-bold text-xl text-neutral-800">Definizione Preventivo</h3>
+            <p className="text-sm text-neutral-500">
+              {totals.totalElements} elementi in {materialLabel} • {groupPrices.length} {groupPrices.length === 1 ? 'gruppo' : 'gruppi'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-bold text-xl text-neutral-800">Definizione Preventivo</h3>
-          <p className="text-sm text-neutral-500">
-            {totals.totalElements} elementi in {materialLabel} • {groupPrices.length} {groupPrices.length === 1 ? 'gruppo' : 'gruppi'}
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* SEZIONE ELEMENTI */}
       <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
@@ -271,18 +273,22 @@ export default function StepQuote({ data, quote, setQuote, onBack, onNext }) {
           </div>
         </div>
 
-        <p className="text-xs text-blue-100 mt-4 pt-4 border-t border-white/20 opacity-80">
-          Cliccando avanti genererai il documento PDF pronto per l'approvazione o l'invio al dottore.
-        </p>
+        {!hideNavigation && (
+          <p className="text-xs text-blue-100 mt-4 pt-4 border-t border-white/20 opacity-80">
+            Cliccando avanti genererai il documento PDF pronto per l'approvazione o l'invio al dottore.
+          </p>
+        )}
       </div>
 
-      {/* FOOTER NAVIGAZIONE */}
-      <div className="flex justify-between pt-4 border-t border-neutral-100">
-        <Button variant="ghost" onClick={onBack}>← Indietro</Button>
-        <Button onClick={onNext}>
-          Genera Documento <ArrowRight size={18} className="ml-2"/>
-        </Button>
-      </div>
+      {/* FOOTER NAVIGAZIONE - Nascosto se hideNavigation */}
+      {!hideNavigation && (
+        <div className="flex justify-between pt-4 border-t border-neutral-100">
+          <Button variant="ghost" onClick={onBack}>← Indietro</Button>
+          <Button onClick={onNext}>
+            Genera Documento <ArrowRight size={18} className="ml-2"/>
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 }
