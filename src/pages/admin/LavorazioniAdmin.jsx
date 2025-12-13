@@ -28,6 +28,7 @@ export default function LavorazioniAdmin() {
         sessionStorage.removeItem('mimesi_filter_pref');
       }
 
+      // CONTROLLO VALIDAZIONE ESISTENTE
       const validateId = sessionStorage.getItem('mimesi_validate_id');
       if (validateId) {
         const jobToValidate = allJobs.find(j => String(j.id) === String(validateId));
@@ -36,6 +37,13 @@ export default function LavorazioniAdmin() {
           setFilter('da_valutare');
         }
         sessionStorage.removeItem('mimesi_validate_id');
+      }
+
+      // NUOVA LOGICA: CONTROLLO APERTURA WIZARD "NUOVA LAVORAZIONE"
+      const shouldCreate = sessionStorage.getItem('mimesi_admin_new_job');
+      if (shouldCreate) {
+          setIsCreating(true);
+          sessionStorage.removeItem('mimesi_admin_new_job');
       }
     };
     loadData();

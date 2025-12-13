@@ -40,6 +40,7 @@ export default function DashboardAdmin({ setPage }) {
   };
 
   const handleNewJob = () => {
+      // Imposta il flag per aprire direttamente il wizard nella pagina Lavorazioni
       sessionStorage.setItem('mimesi_admin_new_job', 'true');
       setPage('lavorazioni');
   };
@@ -47,27 +48,21 @@ export default function DashboardAdmin({ setPage }) {
   return (
     <div className="p-8 max-w-[1600px] mx-auto min-h-screen space-y-6 bg-neutral-50">
       
-      {/* HEADER */}
-      <div className="flex justify-between items-end">
+      {/* HEADER MODIFICATO: Stile identico a DashboardDottore */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Admin Console</h1>
           <p className="text-neutral-500 mt-1">Panoramica operativa del laboratorio Mimesi.</p>
         </div>
-        <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-primary capitalize">{new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                <p className="text-xs text-neutral-400">Operatore: {user?.name}</p>
-            </div>
-            <Button onClick={handleNewJob} className="shadow-lg shadow-primary/30 flex items-center">
-                <Plus size={20} className="mr-2" /> Nuova Lavorazione
-            </Button>
+        
+        <div className="shrink-0">
+          <Button onClick={handleNewJob} className="shadow-lg shadow-primary/30">
+             <Plus size={20} className="mr-2" /> Nuova Lavorazione
+          </Button>
         </div>
       </div>
 
-      {/* MAIN SECTION: 
-          - Altezza FISSA e BLOCCATA a 420px. 
-          - I figli useranno h-full per riempirla esattamente.
-      */}
+      {/* MAIN SECTION */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[420px]">
         
         {/* COLONNA SINISTRA: WIDGET PLANNING (2/3 Spazio) */}
