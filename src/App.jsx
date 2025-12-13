@@ -14,6 +14,7 @@ import InboxDottore from './pages/dottore/InboxDottore';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
 import InboxAdmin from './pages/admin/InboxAdmin';
+import PlanningRegister from './pages/admin/PlanningRegister';
 import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
@@ -64,6 +65,12 @@ function App() {
 
   // LOGICA DI ROUTING CENTRALIZZATA
   const renderContent = () => {
+    
+    // PLANNING REGISTER (solo Admin)
+    if (page === 'planning') {
+      if (user?.role === 'admin') return <PlanningRegister setPage={setPage} />;
+    }
+
     if (page === 'lavorazioni') {
        if (user?.role === 'dottore') return <LavorazioniDottore />;
        if (user?.role === 'admin') return <LavorazioniAdmin />;
@@ -71,7 +78,6 @@ function App() {
 
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
-        // MODIFICA: Passo setPage anche a InboxAdmin per permettere la navigazione
         if (user?.role === 'admin') return <InboxAdmin setPage={setPage} />;
     }
 

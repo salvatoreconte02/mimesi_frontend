@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FileText, MessageSquare, Users, LogOut } from 'lucide-react'; 
+import { LayoutDashboard, FileText, MessageSquare, Users, LogOut, CalendarDays } from 'lucide-react'; 
 import useAuthStore from '../../store/authStore';
 import logoImg from '../../assets/mimesilogo.jpg'; 
 
-// MODIFICA: Aggiunto 'page' alle props
 export default function SidebarAdmin({ setPage, page }) {
   const { user, logout } = useAuthStore();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -22,6 +21,7 @@ export default function SidebarAdmin({ setPage, page }) {
   
   const menus = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'planning', icon: CalendarDays, label: 'Planning Register' },
     { id: 'lavorazioni', icon: FileText, label: 'Lavorazioni' },
     { id: 'inbox', icon: MessageSquare, label: 'Inbox', badge: unreadCount },
     { id: 'users', icon: Users, label: 'Utenti' },
@@ -46,7 +46,6 @@ export default function SidebarAdmin({ setPage, page }) {
       <div className="flex flex-col gap-2 flex-1">
         <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 ml-2">Menu Admin</p>
         {menus.map((item) => {
-          // Logica per determinare se il menu è attivo
           const isActive = page === item.id;
 
           return (

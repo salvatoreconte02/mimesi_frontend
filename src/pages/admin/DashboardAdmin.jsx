@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { 
-  Activity, Clock, AlertCircle, Package, Users, 
-  ChevronRight, Mail, CheckCircle, FileText
+  Activity, Clock, AlertCircle, 
+  ChevronRight, Mail, CheckCircle
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import useAuthStore from '../../store/authStore';
 import StatusWorkWidget, { COLOR_PRESETS } from '../../components/ui/StatusWorkWidget';
+import PlanningWidget from '../../components/widgets/PlanningWidget';
 
 export default function DashboardAdmin({ setPage }) {
   const user = useAuthStore((state) => state.user);
@@ -38,7 +39,7 @@ export default function DashboardAdmin({ setPage }) {
 
       // 2. Carica Messaggi Inbox Admin
       const inbox = JSON.parse(localStorage.getItem('mimesi_admin_inbox') || '[]');
-      setRecentMessages(inbox.slice(0, 4)); 
+      setRecentMessages(inbox.slice(0, 3)); 
     };
 
     // Carica subito i dati
@@ -59,7 +60,7 @@ export default function DashboardAdmin({ setPage }) {
   };
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto min-h-screen space-y-8 bg-neutral-50">
+    <div className="p-8 max-w-[1600px] mx-auto min-h-screen space-y-6 bg-neutral-50">
       
       {/* HEADER DI BENVENUTO */}
       <div className="flex justify-between items-end">
@@ -73,10 +74,8 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* STATISTICHE CON STATUS WORK WIDGET */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        
-        {/* CARD 1: DA VALUTARE */}
+      {/* STATISTICHE COMPATTE */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatusWorkWidget
           count={stats.pending}
           icon={AlertCircle}
@@ -85,8 +84,6 @@ export default function DashboardAdmin({ setPage }) {
           badge="action"
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'da_valutare')}
         />
-
-        {/* CARD 2: IN LAVORAZIONE */}
         <StatusWorkWidget
           count={stats.working}
           icon={Activity}
@@ -94,8 +91,6 @@ export default function DashboardAdmin({ setPage }) {
           colorClasses={COLOR_PRESETS.primary}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'attivi')}
         />
-
-        {/* CARD 3: IN PROVA */}
         <StatusWorkWidget
           count={stats.warning}
           icon={Clock}
@@ -103,8 +98,6 @@ export default function DashboardAdmin({ setPage }) {
           colorClasses={COLOR_PRESETS.orange}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'in_prova')}
         />
-
-        {/* CARD 4: COMPLETATI */}
         <StatusWorkWidget
           count={stats.completed}
           icon={CheckCircle}
@@ -112,161 +105,112 @@ export default function DashboardAdmin({ setPage }) {
           colorClasses={COLOR_PRESETS.success}
           onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'completati')}
         />
-
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* PLANNING WIDGET - ELEMENTO PRINCIPALE */}
+      <PlanningWidget onNavigate={() => setPage('planning')} />
+
+      {/* SEZIONE INFERIORE: LAVORAZIONI RECENTI + INBOX */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* COLONNA SX: OPERATIVITÀ (2/3) */}
-        <div className="lg:col-span-2 space-y-6">
-            
-            {/* TABELLA LAVORAZIONI RECENTI */}
-            <Card className="!p-0 overflow-hidden">
-                <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
-                    <h3 className="font-bold text-lg text-neutral-800">Flusso di Lavoro Recente</h3>
-                    <button onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-                        Gestisci tutte <ChevronRight size={16} />
-                    </button>
-                </div>
-                <div className="p-4">
-                    {recentJobs.length > 0 ? (
-                        <div className="space-y-3">
-                            {recentJobs.map((job) => (
-                                <div key={job.id} 
-                                     className="flex items-center justify-between p-4 hover:bg-neutral-50 rounded-xl border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" 
-                                     onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs
-                                            ${job.stato === 'working' ? 'bg-primary/10 text-primary' : 
-                                              job.stato === 'pending' ? 'bg-orange-100 text-orange-600' : 
-                                              job.stato === 'in_evaluation' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                                            {job.paziente ? job.paziente.charAt(0) : '?'}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-neutral-800 text-sm group-hover:text-primary transition-colors">{job.paziente}</h4>
-                                            <div className="flex items-center gap-2 text-xs text-neutral-400">
-                                                <span className="font-mono bg-neutral-100 px-1 rounded">{job.id}</span>
-                                                <span>• {job.tipo}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-xs font-mono text-neutral-400 hidden md:block">{job.data}</span>
-                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border
-                                            ${job.stato === 'working' ? 'bg-white border-primary text-primary' : 
-                                              job.stato === 'pending' ? 'bg-white border-orange-200 text-orange-600' : 
-                                              job.stato === 'in_evaluation' ? 'bg-white border-blue-200 text-blue-600' : 
-                                              'bg-neutral-100 border-neutral-200 text-neutral-500'}`}>
-                                            {job.statusLabel || job.stato}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+        {/* LAVORAZIONI RECENTI - COMPATTO */}
+        <Card className="!p-0 overflow-hidden">
+          <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
+            <h3 className="font-bold text-neutral-800">Lavorazioni Recenti</h3>
+            <button onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+              Tutte <ChevronRight size={16} />
+            </button>
+          </div>
+          <div className="p-3">
+            {recentJobs.length > 0 ? (
+              <div className="space-y-2">
+                {recentJobs.map((job) => (
+                  <div 
+                    key={job.id} 
+                    className="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-lg border border-transparent hover:border-neutral-100 transition-all cursor-pointer group" 
+                    onClick={() => navigateTo('lavorazioni', 'mimesi_filter_pref', 'tutti')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs
+                        ${job.stato === 'working' ? 'bg-primary/10 text-primary' : 
+                          job.stato === 'pending' ? 'bg-orange-100 text-orange-600' : 
+                          job.stato === 'in_evaluation' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {job.paziente ? job.paziente.charAt(0) : '?'}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-neutral-800 text-sm group-hover:text-primary transition-colors">{job.paziente}</h4>
+                        <div className="flex items-center gap-2 text-[10px] text-neutral-400">
+                          <span className="font-mono">{job.id}</span>
+                          <span>•</span>
+                          <span>{job.tipo}</span>
                         </div>
-                    ) : (
-                        <div className="text-center py-10 text-neutral-400">
-                            <p>Nessuna lavorazione recente</p>
-                        </div>
-                    )}
-                </div>
-            </Card>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border
+                      ${job.stato === 'working' ? 'bg-white border-primary text-primary' : 
+                        job.stato === 'pending' ? 'bg-white border-orange-200 text-orange-600' : 
+                        job.stato === 'in_evaluation' ? 'bg-white border-blue-200 text-blue-600' : 
+                        'bg-neutral-100 border-neutral-200 text-neutral-500'}`}>
+                      {job.statusLabel || job.stato}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-neutral-400 text-sm">
+                Nessuna lavorazione recente
+              </div>
+            )}
+          </div>
+        </Card>
 
-            {/* WIDGET MAGAZZINO */}
-            <div className="grid grid-cols-2 gap-6">
-                <Card>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <Package size={20} className="text-indigo-600" />
-                        </div>
-                        <h4 className="font-bold text-neutral-800">Magazzino Rapido</h4>
+        {/* INBOX ADMIN - COMPATTO */}
+        <Card className="!p-0 overflow-hidden">
+          <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
+            <h3 className="font-bold text-neutral-800">Inbox Admin</h3>
+            <button onClick={() => setPage('inbox')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+              Tutti <ChevronRight size={16} />
+            </button>
+          </div>
+          
+          <div className="p-3">
+            {recentMessages.length > 0 ? (
+              <div className="space-y-2">
+                {recentMessages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className="p-3 hover:bg-neutral-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-neutral-100" 
+                    onClick={() => navigateTo('inbox', 'mimesi_msg_id', msg.id)}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={`text-xs font-bold ${!msg.read ? 'text-primary' : 'text-neutral-600'}`}>
+                        {msg.from}
+                      </span>
+                      <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
                     </div>
-                    <div className="space-y-3">
-                        <div className="flex justify-between text-sm items-center">
-                            <span className="text-neutral-600">Zirconio (Dischi)</span>
-                            <div className="flex items-center gap-2">
-                                <div className="w-20 h-2 bg-neutral-100 rounded-full overflow-hidden"><div className="h-full bg-green-500 w-[80%]"></div></div>
-                                <span className="font-bold text-neutral-800">23</span>
-                            </div>
-                        </div>
-                        <div className="flex justify-between text-sm items-center">
-                            <span className="text-neutral-600">PMMA</span>
-                            <div className="flex items-center gap-2">
-                                <div className="w-20 h-2 bg-neutral-100 rounded-full overflow-hidden"><div className="h-full bg-red-500 w-[15%]"></div></div>
-                                <span className="font-bold text-red-600">4 ⚠️</span>
-                            </div>
-                        </div>
+                    <p className={`text-xs truncate ${!msg.read ? 'font-bold text-neutral-800' : 'text-neutral-500'}`}>
+                      {msg.subject}
+                    </p>
+                    
+                    <div className="flex gap-2 mt-2">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold
+                        ${msg.type === 'request' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                          'bg-neutral-50 text-neutral-500 border-neutral-100'}`}>
+                        {msg.type === 'request' ? 'Richiesta' : 'Notifica'}
+                      </span>
+                      {!msg.read && <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1"></span>}
                     </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                            <Users size={20} className="text-teal-600" />
-                        </div>
-                        <h4 className="font-bold text-neutral-800">Turni Operatori</h4>
-                    </div>
-                    <div className="space-y-2">
-                        {['Marco (CAD)', 'Lucia (Ceramica)', 'Paolo (Fresatura)'].map((op, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-neutral-700">{op}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            </div>
-        </div>
-
-        {/* COLONNA DX: MESSAGGI (1/3) */}
-        <div className="space-y-6">
-            <Card className="!p-0 h-full flex flex-col">
-                <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
-                    <h3 className="font-bold text-lg text-neutral-800">Inbox Admin</h3>
-                    <button onClick={() => setPage('inbox')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-                        Vedi tutti <ChevronRight size={16} />
-                    </button>
-                </div>
-                
-                <div className="flex-1 p-2">
-                    {recentMessages.length > 0 ? (
-                        <div className="space-y-1">
-                            {recentMessages.map((msg) => (
-                                <div 
-                                    key={msg.id} 
-                                    className="p-3 hover:bg-neutral-50 rounded-xl cursor-pointer transition-colors" 
-                                    onClick={() => navigateTo('inbox', 'mimesi_msg_id', msg.id)}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className={`text-xs font-bold ${!msg.read ? 'text-primary' : 'text-neutral-600'}`}>
-                                            {msg.from}
-                                        </span>
-                                        <span className="text-[10px] text-neutral-400">{new Date(msg.date).toLocaleDateString()}</span>
-                                    </div>
-                                    <p className={`text-xs mb-1 truncate ${!msg.read ? 'font-bold text-neutral-800' : 'text-neutral-500'}`}>
-                                        {msg.subject}
-                                    </p>
-                                    
-                                    <div className="flex gap-2 mt-2">
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold tracking-wider
-                                            ${msg.type === 'request' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                                              'bg-neutral-50 text-neutral-500 border-neutral-100'}`}>
-                                            {msg.type === 'request' ? 'Richiesta' : 'Notifica'}
-                                        </span>
-                                        {!msg.read && <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1"></span>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-neutral-400 flex flex-col items-center">
-                            <Mail size={32} className="mb-2 opacity-20"/>
-                            <p className="text-xs">Nessun messaggio</p>
-                        </div>
-                    )}
-                </div>
-            </Card>
-        </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-neutral-400 flex flex-col items-center">
+                <Mail size={24} className="mb-2 opacity-20"/>
+                <p className="text-sm">Nessun messaggio</p>
+              </div>
+            )}
+          </div>
+        </Card>
 
       </div>
     </div>
