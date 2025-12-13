@@ -1,5 +1,8 @@
-import { LayoutDashboard, Calendar, Users, LogOut, Package, FileText } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, LogOut, Package, FileText, MessageSquare } from 'lucide-react'; 
 import useAuthStore from '../../store/authStore';
+
+// IMPORT DEL LOGO
+import logoImg from '../../assets/mimesilogo.jpg'; 
 
 export default function Sidebar({ setPage }) {
   const { user, logout } = useAuthStore();
@@ -8,7 +11,7 @@ export default function Sidebar({ setPage }) {
     dottore: [
       { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { id: 'lavorazioni', icon: FileText, label: 'Lavorazioni' },
-      { id: 'pazienti', icon: Users, label: 'Pazienti' },
+      { id: 'inbox', icon: MessageSquare, label: 'Inbox', badge: 2 },
     ],
     operatore: [
       { id: 'dashboard', icon: Calendar, label: 'Calendario' },
@@ -23,8 +26,14 @@ export default function Sidebar({ setPage }) {
 
   return (
     <div className="w-64 h-screen fixed left-0 top-0 glass-sidebar flex flex-col p-6 z-50">
+      
+      {/* HEADER CON LOGO */}
       <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-10 rounded-xl bg-mimesi-gradient flex items-center justify-center text-white font-bold">M</div>
+        <img 
+          src={logoImg} 
+          alt="Mimesi Logo" 
+          className="w-10 h-10 object-contain rounded-xl" // rounded-xl per smussare gli angoli se è quadrato
+        />
         <h1 className="text-2xl font-bold tracking-tight text-primary">MIMESI</h1>
       </div>
 
@@ -32,9 +41,15 @@ export default function Sidebar({ setPage }) {
         <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 ml-2">Menu {user?.role}</p>
         {(menus[user?.role] || []).map((item) => (
           <button key={item.id} onClick={() => setPage(item.id)} 
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-neutral-600 hover:bg-primary-lighter hover:text-primary transition-colors text-left">
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-neutral-600 hover:bg-primary-lighter hover:text-primary transition-colors text-left group relative">
             <item.icon size={20} />
             <span className="font-medium">{item.label}</span>
+            
+            {item.badge && (
+              <span className="absolute right-3 bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                {item.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>

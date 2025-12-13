@@ -1,9 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuthStore from './store/authStore';
-import Sidebar from './components/layout/Sidebar';
-import Dashboard from './pages/dottore/DashboardDottore';
+import SidebarDottore from './components/layout/SidebarDottore';
+import SidebarAdmin from './components/layout/SidebarAdmin';
+import Sidebar from './components/layout/Sidebar'; 
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
+import { initializeMockData } from './mockData';
+
+// --- IMPORT PAGINE ---
+import DashboardDottore from './pages/dottore/DashboardDottore';
+import LavorazioniDottore from './pages/dottore/LavorazioniDottore';
+import InboxDottore from './pages/dottore/InboxDottore';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
+import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
+import InboxAdmin from './pages/admin/InboxAdmin';
+import PlanningRegister from './pages/admin/PlanningRegister';
+import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
   const login = useAuthStore(s => s.login);
@@ -41,24 +53,65 @@ function Login() {
 }
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [page, setPage] = useState('dashboard');
+
+  // Initialize mock data on first load
+  useEffect(() => {
+    initializeMockData();
+  }, []);
 
   if (!isAuthenticated) return <Login />;
 
-  return (
-    <div className="bg-neutral-50 min-h-screen pl-64">
-      <Sidebar setPage={setPage} />
-      <main className="min-h-screen">
-        {page === 'dashboard' && <Dashboard />}
-        {page !== 'dashboard' && (
-          <div className="p-8 flex items-center justify-center h-screen opacity-50">
+  // LOGICA DI ROUTING CENTRALIZZATA
+  const renderContent = () => {
+    
+    // PLANNING REGISTER (solo Admin)
+    if (page === 'planning') {
+      if (user?.role === 'admin') return <PlanningRegister setPage={setPage} />;
+    }
+
+    if (page === 'lavorazioni') {
+       if (user?.role === 'dottore') return <LavorazioniDottore />;
+       if (user?.role === 'admin') return <LavorazioniAdmin />;
+    }
+
+    if (page === 'inbox') {
+        if (user?.role === 'dottore') return <InboxDottore />;
+        if (user?.role === 'admin') return <InboxAdmin setPage={setPage} />;
+    }
+
+    if (page === 'dashboard') {
+        switch(user?.role) {
+            case 'admin':
+                return <DashboardAdmin setPage={setPage} />;
+            case 'dottore':
+                return <DashboardDottore setPage={setPage} />;
+            default:
+                return <DashboardGeneric />; 
+        }
+    }
+
+    return (
+        <div className="p-8 flex items-center justify-center h-screen opacity-50">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-neutral-300">Modulo in Sviluppo</h2>
-              <p className="text-neutral-400">Questa sezione sarà disponibile nella prossima release.</p>
+              <p className="text-neutral-400">La sezione <strong>{page}</strong> sarà disponibile nella prossima release.</p>
             </div>
-          </div>
-        )}
+        </div>
+    );
+  };
+
+  let SidebarComponent;
+  if (user?.role === 'admin') SidebarComponent = SidebarAdmin;
+  else if (user?.role === 'dottore') SidebarComponent = SidebarDottore;
+  else SidebarComponent = Sidebar;
+
+  return (
+    <div className="bg-neutral-50 min-h-screen pl-64">
+      <SidebarComponent setPage={setPage} page={page} />
+      <main className="min-h-screen">
+        {renderContent()}
       </main>
     </div>
   );
