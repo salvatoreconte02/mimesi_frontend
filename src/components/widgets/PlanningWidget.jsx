@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, CheckCircle, Coffee } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, CheckCircle, Coffee, Clock } from 'lucide-react';
 
 // --- OPERATORI ---
 const OPERATORI = [
-  { id: 1, nome: 'Marco', ruolo: 'CAD', color: 'bg-blue-500', colorLight: 'bg-blue-50', colorText: 'text-blue-600' },
-  { id: 2, nome: 'Lucia', ruolo: 'Ceramica', color: 'bg-pink-500', colorLight: 'bg-pink-50', colorText: 'text-pink-600' },
-  { id: 3, nome: 'Paolo', ruolo: 'Fresatura', color: 'bg-emerald-500', colorLight: 'bg-emerald-50', colorText: 'text-emerald-600' },
-  { id: 4, nome: 'Sara', ruolo: 'Rifinitura', color: 'bg-purple-500', colorLight: 'bg-purple-50', colorText: 'text-purple-600' },
+  { id: 1, nome: 'Marco', ruolo: 'CAD', color: 'bg-blue-500', colorLight: 'bg-blue-50', colorText: 'text-blue-600', border: 'border-blue-200' },
+  { id: 2, nome: 'Lucia', ruolo: 'Ceramica', color: 'bg-pink-500', colorLight: 'bg-pink-50', colorText: 'text-pink-600', border: 'border-pink-200' },
+  { id: 3, nome: 'Paolo', ruolo: 'Fresatura', color: 'bg-emerald-500', colorLight: 'bg-emerald-50', colorText: 'text-emerald-600', border: 'border-emerald-200' },
+  { id: 4, nome: 'Sara', ruolo: 'Rifinitura', color: 'bg-purple-500', colorLight: 'bg-purple-50', colorText: 'text-purple-600', border: 'border-purple-200' },
 ];
 
 // --- HELPERS ---
 const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 };
@@ -73,18 +74,22 @@ const generateMansioniForDate = (dateStr) => {
     const pool = mansioniPool[op.id];
     const selectedSet = pool[(seed + op.id) % pool.length];
     
-    selectedSet.forEach((m, idx) => {
-      const startMinutes = timeToMinutes(m.oraInizio);
-      const currentMinutes = timeToMinutes(getCurrentTime());
-      const isInPast = startMinutes + 90 < currentMinutes;
-      
-      result.push({
-        id: idCounter++,
-        operatoreId: op.id,
-        ...m,
-        completata: isInPast && (seed + idx) % 3 !== 0,
-      });
-    });
+    if (selectedSet) {
+        selectedSet.forEach((m, idx) => {
+          const startMinutes = timeToMinutes(m.oraInizio);
+          const currentMinutes = timeToMinutes(getCurrentTime());
+          // Logica semplificata per demo: se l'ora di inizio + 90min è passata, è completata
+          const isInPast = startMinutes + 90 < currentMinutes;
+          
+          result.push({
+            id: idCounter++,
+            operatoreId: op.id,
+            ...m,
+            // Aggiungiamo un po' di variabilità casuale per le completate
+            completata: isInPast, 
+          });
+        });
+    }
   });
   
   return result;
@@ -126,58 +131,63 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`
-        p-3 rounded-xl border transition-all
+        p-3 rounded-xl border transition-all h-full flex flex-col justify-between
         ${stato === 'attivo' 
-          ? `${operatore.colorLight} border-current ${operatore.colorText} ring-2 ring-current ring-opacity-20` 
+          ? `${operatore.colorLight} ${operatore.border} ${operatore.colorText} shadow-sm ring-1 ring-current ring-opacity-10` 
           : 'bg-white border-neutral-100 hover:border-neutral-200'}
       `}
     >
       <div className="flex items-center gap-2 mb-2">
-        <div className={`w-7 h-7 rounded-full ${operatore.color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+        <div className={`w-8 h-8 rounded-full ${operatore.color} flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white`}>
           {operatore.nome[0]}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-sm text-neutral-800 truncate">{operatore.nome}</h4>
-          <p className="text-[10px] text-neutral-400">{operatore.ruolo}</p>
+          <h4 className="font-bold text-sm text-neutral-800 truncate leading-tight">{operatore.nome}</h4>
+          <p className="text-[10px] text-neutral-400 font-medium">{operatore.ruolo}</p>
         </div>
         
         {stato === 'attivo' && (
           <span className="flex items-center gap-1 text-[9px] font-bold text-primary bg-white px-1.5 py-0.5 rounded-full shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            IN CORSO
+            LIVE
           </span>
         )}
         {stato === 'finito' && <CheckCircle size={16} className="text-green-500" />}
         {stato === 'libero' && totaleOggi === 0 && <Coffee size={14} className="text-neutral-300" />}
       </div>
 
-      {mansioneMostrata ? (
-        <div className={`text-xs ${stato === 'attivo' ? operatore.colorText : 'text-neutral-600'}`}>
-          <div className="flex items-center justify-between">
-            <span className="font-medium truncate">{mansioneMostrata.paziente}</span>
-            <span className="font-mono text-[10px] text-neutral-400 shrink-0 ml-2">
-              {mansioneMostrata.oraInizio}-{mansioneMostrata.oraFine}
-            </span>
-          </div>
-          {stato === 'prossimo' && (
-            <p className="text-[10px] text-neutral-400 mt-0.5">Prossimo alle {mansioneMostrata.oraInizio}</p>
+      <div className="bg-white/50 rounded-lg p-2 border border-black/5 flex-1 flex flex-col justify-center">
+          {mansioneMostrata ? (
+            <div className={`text-xs ${stato === 'attivo' ? operatore.colorText : 'text-neutral-600'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold truncate" title={mansioneMostrata.paziente}>{mansioneMostrata.paziente}</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] opacity-80 font-mono">
+                  <Clock size={10} />
+                  {mansioneMostrata.oraInizio} - {mansioneMostrata.oraFine}
+              </div>
+              {stato === 'prossimo' && (
+                <p className="text-[9px] text-neutral-400 mt-1 italic">In attesa...</p>
+              )}
+            </div>
+          ) : stato === 'finito' ? (
+            <div className="text-center">
+                 <p className="text-[10px] text-green-600 font-bold">Tutte le mansioni completate!</p>
+            </div>
+          ) : (
+            <p className="text-[10px] text-neutral-400 italic text-center">Nessuna attività</p>
           )}
-        </div>
-      ) : stato === 'finito' ? (
-        <p className="text-[10px] text-green-600 font-medium">✓ {completateOggi} mansioni completate</p>
-      ) : (
-        <p className="text-[10px] text-neutral-400 italic">Nessuna mansione</p>
-      )}
+      </div>
       
       {totaleOggi > 0 && (
-        <div className="flex items-center gap-1.5 mt-2">
-          <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden border border-neutral-100">
             <div 
-              className={`h-full rounded-full ${stato === 'attivo' ? operatore.color : 'bg-neutral-300'}`}
+              className={`h-full rounded-full transition-all duration-500 ${stato === 'attivo' ? operatore.color : 'bg-neutral-300'}`}
               style={{ width: `${(completateOggi / totaleOggi) * 100}%` }}
             />
           </div>
-          <span className="text-[9px] text-neutral-400 font-mono">{completateOggi}/{totaleOggi}</span>
+          <span className="text-[9px] text-neutral-400 font-mono font-bold">{completateOggi}/{totaleOggi}</span>
         </div>
       )}
     </motion.div>
@@ -219,7 +229,7 @@ export default function PlanningWidget({ onNavigate }) {
   const formattedDate = selectedDate.toLocaleDateString('it-IT', { 
     weekday: 'short', 
     day: 'numeric', 
-    month: 'short' 
+    month: 'long' 
   });
 
   const goToPrev = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
@@ -227,49 +237,36 @@ export default function PlanningWidget({ onNavigate }) {
   const goToToday = () => setSelectedDate(new Date());
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+    // QUI HO MODIFICATO l'altezza in h-full
+    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden h-full flex flex-col">
       
       {/* Header */}
-      <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Calendar className="text-primary" size={18} />
           </div>
           <div>
-            <h3 className="font-bold text-neutral-800 text-sm">Planning</h3>
+            <h3 className="font-bold text-neutral-800 text-sm">Planning Register</h3>
             
             {/* Navigazione Data */}
-            <div className="flex items-center gap-1 text-[11px]">
-              <button 
-                onClick={goToPrev}
-                className="p-0.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-600"
-              >
-                <ChevronLeft size={14} />
+            <div className="flex items-center gap-1 text-[11px] mt-0.5">
+              <button onClick={goToPrev} className="hover:bg-neutral-200 rounded p-0.5 transition-colors">
+                <ChevronLeft size={14} className="text-neutral-500" />
               </button>
               
-              <button 
-                onClick={goToToday}
-                className={`capitalize px-1.5 py-0.5 rounded transition-colors ${
-                  isToday 
-                    ? 'text-primary font-bold' 
-                    : 'text-neutral-500 hover:bg-neutral-100'
-                }`}
-              >
+              <span className={`px-1 font-medium ${isToday ? 'text-primary' : 'text-neutral-500'}`}>
                 {formattedDate}
-              </button>
+              </span>
               
-              <button 
-                onClick={goToNext}
-                className="p-0.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-600"
-              >
-                <ChevronRight size={14} />
+              <button onClick={goToNext} className="hover:bg-neutral-200 rounded p-0.5 transition-colors">
+                <ChevronRight size={14} className="text-neutral-500" />
               </button>
-              
-              {isToday && (
-                <>
-                  <span className="text-neutral-300 mx-1">•</span>
-                  <span className="font-mono font-bold text-primary">{currentTime}</span>
-                </>
+
+              {!isToday && (
+                  <button onClick={goToToday} className="text-[10px] text-primary font-bold ml-1 hover:underline">
+                      Oggi
+                  </button>
               )}
             </div>
           </div>
@@ -285,33 +282,33 @@ export default function PlanningWidget({ onNavigate }) {
 
       {/* Content */}
       {weekend ? (
-        <div className="p-6 text-center">
-          <Coffee size={32} className="mx-auto mb-2 text-neutral-200" />
-          <p className="text-sm font-medium text-neutral-400">Weekend</p>
-          <p className="text-[11px] text-neutral-300">Laboratorio chiuso</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+          <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-3">
+             <Coffee size={32} className="text-neutral-300" />
+          </div>
+          <p className="text-sm font-bold text-neutral-500">Buon Weekend!</p>
+          <p className="text-xs text-neutral-400">Il laboratorio è chiuso.</p>
         </div>
       ) : (
         <>
-          {/* Mini Stats */}
-          <div className="px-4 py-2 bg-neutral-50 flex items-center justify-around text-center border-b border-neutral-100">
-            <div>
-              <span className="text-lg font-bold text-neutral-800">{totaleMansioniOggi}</span>
-              <p className="text-[9px] text-neutral-400 uppercase">Totali</p>
+          {/* Mini Stats Bar */}
+          <div className="flex border-b border-neutral-100 bg-white">
+            <div className="flex-1 py-2 text-center border-r border-neutral-50">
+               <span className="block text-sm font-bold text-neutral-700">{totaleMansioniOggi}</span>
+               <span className="text-[9px] text-neutral-400 uppercase font-bold tracking-wider">Totali</span>
             </div>
-            <div className="w-px h-6 bg-neutral-200" />
-            <div>
-              <span className="text-lg font-bold text-primary">{isToday ? inCorso : '-'}</span>
-              <p className="text-[9px] text-neutral-400 uppercase">In corso</p>
+            <div className="flex-1 py-2 text-center border-r border-neutral-50">
+               <span className="block text-sm font-bold text-primary">{isToday ? inCorso : '-'}</span>
+               <span className="text-[9px] text-neutral-400 uppercase font-bold tracking-wider">Attive</span>
             </div>
-            <div className="w-px h-6 bg-neutral-200" />
-            <div>
-              <span className="text-lg font-bold text-green-600">{completate}</span>
-              <p className="text-[9px] text-neutral-400 uppercase">Finite</p>
+            <div className="flex-1 py-2 text-center">
+               <span className="block text-sm font-bold text-green-600">{completate}</span>
+               <span className="text-[9px] text-neutral-400 uppercase font-bold tracking-wider">Finite</span>
             </div>
           </div>
 
           {/* Griglia Operatori 2x2 */}
-          <div className="p-3 grid grid-cols-2 gap-2">
+          <div className="flex-1 p-3 grid grid-cols-2 gap-3 overflow-y-auto custom-scrollbar bg-neutral-50/30">
             {mansioniPerOperatore.map(({ operatore, mansioni }) => (
               <OperatorCard
                 key={operatore.id}
