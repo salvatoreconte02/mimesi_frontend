@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, ChevronRight, Calendar, Clock, 
-  Plus, GripVertical, Truck, AlertCircle,
-  X, Check, MoreVertical, LayoutGrid, List, Users
+  GripVertical, Truck, AlertCircle, Flag,
+  X, Check, MoreVertical, List, Users
 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -16,16 +16,15 @@ const OPERATORI = [
   { id: 4, nome: 'Sara', ruolo: 'Rifinitura', color: 'bg-purple-500', colorLight: 'bg-purple-100', colorBorder: 'border-purple-300', colorText: 'text-purple-700' },
 ];
 
-// --- TIPI DI FASE ---
+// --- TIPI DI FASE (senza Controllo QC) ---
 const FASI = [
   { id: 'cad', nome: 'CAD', icon: '🖥️' },
   { id: 'fresatura', nome: 'Fresatura', icon: '⚙️' },
   { id: 'ceramica', nome: 'Ceramica', icon: '🎨' },
   { id: 'rifinitura', nome: 'Rifinitura', icon: '✨' },
-  { id: 'controllo', nome: 'Controllo QC', icon: '✓' },
 ];
 
-// --- DATABASE LAVORAZIONI (simulato) ---
+// --- DATABASE LAVORAZIONI ---
 const LAVORAZIONI_DB = [
   {
     id: 'REQ-001',
@@ -34,6 +33,7 @@ const LAVORAZIONI_DB = [
     elementi: '24',
     materiale: 'Zirconio',
     dataConsegna: '2025-12-17',
+    dataTryIn: '2025-12-16',
     urgente: true,
     progress: 65,
   },
@@ -44,6 +44,7 @@ const LAVORAZIONI_DB = [
     elementi: '14-16',
     materiale: 'Disilicato',
     dataConsegna: '2025-12-19',
+    dataTryIn: null,
     urgente: false,
     progress: 40,
   },
@@ -54,6 +55,7 @@ const LAVORAZIONI_DB = [
     elementi: '36',
     materiale: 'Titanio + Zirconio',
     dataConsegna: '2025-12-22',
+    dataTryIn: '2025-12-20',
     urgente: false,
     progress: 20,
   },
@@ -64,6 +66,7 @@ const LAVORAZIONI_DB = [
     elementi: '11-21',
     materiale: 'Disilicato',
     dataConsegna: '2025-12-16',
+    dataTryIn: null,
     urgente: true,
     progress: 80,
   },
@@ -74,6 +77,7 @@ const LAVORAZIONI_DB = [
     elementi: '35-37',
     materiale: 'PMMA',
     dataConsegna: '2025-12-15',
+    dataTryIn: null,
     urgente: true,
     progress: 50,
   },
@@ -84,59 +88,111 @@ const LAVORAZIONI_DB = [
     elementi: '46',
     materiale: 'Zirconio',
     dataConsegna: '2025-12-20',
+    dataTryIn: '2025-12-18',
     urgente: false,
     progress: 10,
   },
 ];
 
-// --- GENERA MANSIONI PER UNA DATA SPECIFICA ---
+// --- GENERA MANSIONI PER DATA (SENZA OVERLAP PER OPERATORE) ---
 const generateMansioniForDate = (dateStr) => {
   const date = new Date(dateStr);
   const dayOfWeek = date.getDay();
   
-  // Weekend: nessuna mansione
   if (dayOfWeek === 0 || dayOfWeek === 6) return [];
   
-  // Seed basato sulla data per consistenza
-  const dateParts = dateStr.split('-');
-  const seed = parseInt(dateParts[2]) + parseInt(dateParts[1]) * 31;
+  const seed = date.getDate() + date.getMonth() * 31;
   
-  // Mansioni diverse per ogni giorno della settimana
-  const allMansioni = [
-    // Lunedì-like (seed % 5 === 1)
-    { lavorazioneId: 'REQ-001', id: 'm1', fase: 'cad', operatoreId: 1, oraInizio: '08:30', oraFine: '10:30', completata: false },
-    { lavorazioneId: 'REQ-001', id: 'm2', fase: 'fresatura', operatoreId: 3, oraInizio: '11:00', oraFine: '13:00', completata: false },
-    { lavorazioneId: 'REQ-002', id: 'm3', fase: 'cad', operatoreId: 1, oraInizio: '14:00', oraFine: '16:00', completata: false },
-    { lavorazioneId: 'REQ-004', id: 'm4', fase: 'ceramica', operatoreId: 2, oraInizio: '08:00', oraFine: '11:00', completata: false },
-    { lavorazioneId: 'REQ-004', id: 'm5', fase: 'rifinitura', operatoreId: 4, oraInizio: '14:00', oraFine: '16:00', completata: false },
-    { lavorazioneId: 'REQ-005', id: 'm6', fase: 'fresatura', operatoreId: 3, oraInizio: '14:00', oraFine: '15:30', completata: false },
+  // Pool di mansioni NON SOVRAPPOSTE per ogni operatore
+  const mansioniPool = {
+    1: [
+      [
+        { lavorazioneId: 'REQ-001', fase: 'cad', oraInizio: '08:30', oraFine: '10:30' },
+        { lavorazioneId: 'REQ-002', fase: 'cad', oraInizio: '11:00', oraFine: '13:00' },
+        { lavorazioneId: 'REQ-003', fase: 'cad', oraInizio: '14:00', oraFine: '16:30' },
+      ],
+      [
+        { lavorazioneId: 'REQ-004', fase: 'cad', oraInizio: '08:00', oraFine: '10:00' },
+        { lavorazioneId: 'REQ-006', fase: 'cad', oraInizio: '10:30', oraFine: '12:30' },
+        { lavorazioneId: 'REQ-005', fase: 'cad', oraInizio: '14:30', oraFine: '17:00' },
+      ],
+      [
+        { lavorazioneId: 'REQ-002', fase: 'cad', oraInizio: '09:00', oraFine: '12:00' },
+        { lavorazioneId: 'REQ-001', fase: 'cad', oraInizio: '14:00', oraFine: '17:30' },
+      ],
+    ],
+    2: [
+      [
+        { lavorazioneId: 'REQ-004', fase: 'ceramica', oraInizio: '08:00', oraFine: '11:00' },
+        { lavorazioneId: 'REQ-001', fase: 'ceramica', oraInizio: '14:00', oraFine: '17:00' },
+      ],
+      [
+        { lavorazioneId: 'REQ-002', fase: 'ceramica', oraInizio: '09:00', oraFine: '12:30' },
+        { lavorazioneId: 'REQ-003', fase: 'ceramica', oraInizio: '14:00', oraFine: '16:30' },
+      ],
+      [
+        { lavorazioneId: 'REQ-006', fase: 'ceramica', oraInizio: '08:30', oraFine: '11:30' },
+        { lavorazioneId: 'REQ-005', fase: 'ceramica', oraInizio: '13:00', oraFine: '15:00' },
+        { lavorazioneId: 'REQ-001', fase: 'ceramica', oraInizio: '15:30', oraFine: '17:30' },
+      ],
+    ],
+    3: [
+      [
+        { lavorazioneId: 'REQ-001', fase: 'fresatura', oraInizio: '08:00', oraFine: '10:00' },
+        { lavorazioneId: 'REQ-002', fase: 'fresatura', oraInizio: '10:30', oraFine: '12:30' },
+        { lavorazioneId: 'REQ-005', fase: 'fresatura', oraInizio: '14:00', oraFine: '16:00' },
+      ],
+      [
+        { lavorazioneId: 'REQ-003', fase: 'fresatura', oraInizio: '08:30', oraFine: '11:00' },
+        { lavorazioneId: 'REQ-004', fase: 'fresatura', oraInizio: '14:00', oraFine: '16:30' },
+      ],
+      [
+        { lavorazioneId: 'REQ-006', fase: 'fresatura', oraInizio: '09:00', oraFine: '11:00' },
+        { lavorazioneId: 'REQ-002', fase: 'fresatura', oraInizio: '11:30', oraFine: '13:00' },
+        { lavorazioneId: 'REQ-001', fase: 'fresatura', oraInizio: '15:00', oraFine: '17:30' },
+      ],
+    ],
+    4: [
+      [
+        { lavorazioneId: 'REQ-004', fase: 'rifinitura', oraInizio: '09:00', oraFine: '11:00' },
+        { lavorazioneId: 'REQ-001', fase: 'rifinitura', oraInizio: '14:00', oraFine: '16:00' },
+      ],
+      [
+        { lavorazioneId: 'REQ-002', fase: 'rifinitura', oraInizio: '08:30', oraFine: '10:30' },
+        { lavorazioneId: 'REQ-005', fase: 'rifinitura', oraInizio: '11:00', oraFine: '13:00' },
+        { lavorazioneId: 'REQ-003', fase: 'rifinitura', oraInizio: '15:00', oraFine: '17:00' },
+      ],
+      [
+        { lavorazioneId: 'REQ-006', fase: 'rifinitura', oraInizio: '10:00', oraFine: '12:00' },
+        { lavorazioneId: 'REQ-001', fase: 'rifinitura', oraInizio: '14:30', oraFine: '17:30' },
+      ],
+    ],
+  };
+  
+  const result = [];
+  let idCounter = 1;
+  
+  OPERATORI.forEach(op => {
+    const pool = mansioniPool[op.id];
+    const selectedSetIndex = (seed + op.id) % pool.length;
+    const selectedSet = pool[selectedSetIndex];
     
-    // Extra per variazione
-    { lavorazioneId: 'REQ-003', id: 'm7', fase: 'cad', operatoreId: 1, oraInizio: '16:30', oraFine: '18:00', completata: false },
-    { lavorazioneId: 'REQ-006', id: 'm8', fase: 'cad', operatoreId: 1, oraInizio: '09:00', oraFine: '10:00', completata: false },
-    { lavorazioneId: 'REQ-002', id: 'm9', fase: 'fresatura', operatoreId: 3, oraInizio: '16:00', oraFine: '17:30', completata: false },
-    { lavorazioneId: 'REQ-001', id: 'm10', fase: 'ceramica', operatoreId: 2, oraInizio: '14:00', oraFine: '17:00', completata: false },
-    { lavorazioneId: 'REQ-003', id: 'm11', fase: 'fresatura', operatoreId: 3, oraInizio: '08:00', oraFine: '10:00', completata: false },
-    { lavorazioneId: 'REQ-006', id: 'm12', fase: 'fresatura', operatoreId: 3, oraInizio: '10:30', oraFine: '12:00', completata: false },
-    { lavorazioneId: 'REQ-005', id: 'm13', fase: 'rifinitura', operatoreId: 4, oraInizio: '16:00', oraFine: '17:30', completata: false },
-    { lavorazioneId: 'REQ-004', id: 'm14', fase: 'controllo', operatoreId: 4, oraInizio: '17:00', oraFine: '17:30', completata: false },
-  ];
+    selectedSet.forEach((m, idx) => {
+      const startMinutes = timeToMinutes(m.oraInizio);
+      const currentMinutes = timeToMinutes(getCurrentTime());
+      const isInPast = startMinutes + 90 < currentMinutes;
+      
+      result.push({
+        ...m,
+        id: `${dateStr}-m${idCounter++}`,
+        operatoreId: op.id,
+        data: dateStr,
+        completata: isInPast && (seed + idx) % 3 !== 0,
+      });
+    });
+  });
   
-  // Seleziona mansioni in base al seed (simula giorni diversi)
-  const selectedIndices = [];
-  for (let i = 0; i < allMansioni.length; i++) {
-    if ((seed + i * 7) % 3 !== 0) {
-      selectedIndices.push(i);
-    }
-  }
-  
-  // Ritorna mansioni selezionate con ID unici per questa data
-  return selectedIndices.map((idx, i) => ({
-    ...allMansioni[idx],
-    id: `${dateStr}-${allMansioni[idx].id}`,
-    data: dateStr,
-    completata: (seed + i) % 4 === 0 // Alcune completate random
-  }));
+  return result;
 };
 
 // --- HELPERS ---
@@ -246,10 +302,16 @@ function MansionBlockRow({ mansione, operatore, onEdit }) {
 // ============================================================================
 // COMPONENTE: RIGA LAVORAZIONE (Vista Lavorazioni)
 // ============================================================================
-function LavorazioneRow({ lavorazione, mansioni, onEditMansione, showCurrentLine, currentLineLeft }) {
+function LavorazioneRow({ lavorazione, mansioni, onEditMansione, showCurrentLine, currentLineLeft, selectedDateStr }) {
   const daysUntil = getDaysUntil(lavorazione.dataConsegna);
   const isOverdue = daysUntil < 0;
   const isUrgent = daysUntil <= 2;
+  
+  const isDeliveryDay = lavorazione.dataConsegna === selectedDateStr;
+  const isTryInDay = lavorazione.dataTryIn === selectedDateStr;
+  
+  // Se è giorno di consegna finale, progress = 100%
+  const displayProgress = isDeliveryDay ? 100 : lavorazione.progress;
   
   return (
     <div className="flex border-b border-neutral-100 hover:bg-neutral-50/50 transition-colors">
@@ -273,27 +335,39 @@ function LavorazioneRow({ lavorazione, mansioni, onEditMansione, showCurrentLine
               {lavorazione.tipo} • {lavorazione.elementi} • {lavorazione.materiale}
             </p>
             
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className="text-[9px] font-mono bg-neutral-100 px-1.5 py-0.5 rounded">
                 {lavorazione.id}
               </span>
               <div className={`
                 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded
-                ${isOverdue ? 'bg-red-100 text-red-700' : isUrgent ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}
+                ${isDeliveryDay ? 'bg-green-500 text-white' :
+                  isOverdue ? 'bg-red-100 text-red-700' : 
+                  isUrgent ? 'bg-orange-100 text-orange-700' : 
+                  'bg-green-100 text-green-700'}
               `}>
                 <Truck size={10} />
-                {isOverdue ? 'SCADUTO' : `${daysUntil}g`}
+                {isDeliveryDay ? 'CONSEGNA' : isOverdue ? 'SCADUTO' : `${daysUntil}g`}
               </div>
+              {isTryInDay && (
+                <div className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                  <Flag size={10} />
+                  PROVA
+                </div>
+              )}
             </div>
             
             <div className="mt-2 flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full rounded-full ${lavorazione.progress >= 80 ? 'bg-green-500' : 'bg-primary'}`}
-                  style={{ width: `${lavorazione.progress}%` }}
+                  className={`h-full rounded-full transition-all ${
+                    displayProgress >= 100 ? 'bg-green-500' : 
+                    displayProgress >= 80 ? 'bg-green-400' : 'bg-primary'
+                  }`}
+                  style={{ width: `${displayProgress}%` }}
                 />
               </div>
-              <span className="text-[9px] font-bold text-neutral-500">{lavorazione.progress}%</span>
+              <span className="text-[9px] font-bold text-neutral-500">{displayProgress}%</span>
             </div>
           </div>
         </div>
@@ -322,10 +396,6 @@ function LavorazioneRow({ lavorazione, mansioni, onEditMansione, showCurrentLine
             <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-red-500" />
           </div>
         )}
-        
-        <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg border-2 border-dashed border-neutral-200 text-neutral-300 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors">
-          <Plus size={16} />
-        </button>
       </div>
     </div>
   );
@@ -391,7 +461,6 @@ function MansionBlockColumn({ mansione, lavorazione, onEdit }) {
 function OperatorColumn({ operatore, mansioni, lavorazioniMap, onEditMansione, showCurrentLine, currentLineTop }) {
   return (
     <div className="flex-1 min-w-[160px] border-r border-neutral-100 last:border-r-0 relative">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 p-3 flex items-center gap-2">
         <div className={`w-8 h-8 rounded-full ${operatore.color} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
           {operatore.nome[0]}
@@ -402,7 +471,6 @@ function OperatorColumn({ operatore, mansioni, lavorazioniMap, onEditMansione, s
         </div>
       </div>
 
-      {/* Grid Ore */}
       <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * HOUR_HEIGHT}px` }}>
         {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (
           <div key={i} className="absolute left-0 right-0 border-t border-neutral-100" style={{ top: `${i * HOUR_HEIGHT}px` }} />
@@ -535,39 +603,34 @@ function EditMansioneModal({ mansione, lavorazione, onClose, onSave }) {
 // ============================================================================
 // COMPONENTE PRINCIPALE
 // ============================================================================
-export default function PlanningRegister({ setPage }) {
+export default function PlanningRegister() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
-  const [viewMode, setViewMode] = useState('lavorazioni'); // 'lavorazioni' | 'operatori'
+  const [viewMode, setViewMode] = useState('lavorazioni');
   const [editingMansione, setEditingMansione] = useState(null);
   
-  // Aggiorna ora
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(getCurrentTime()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Genera mansioni per la data selezionata
   const dateStr = formatDateISO(selectedDate);
   const mansioni = useMemo(() => generateMansioniForDate(dateStr), [dateStr]);
   
-  // Mappa lavorazioni
   const lavorazioniMap = useMemo(() => {
     const map = {};
     LAVORAZIONI_DB.forEach(l => { map[l.id] = l; });
     return map;
   }, []);
   
-  // Lavorazioni con mansioni oggi
   const lavorazioniOggi = useMemo(() => {
     const lavorazioniIds = [...new Set(mansioni.map(m => m.lavorazioneId))];
     return lavorazioniIds.map(id => ({
       ...lavorazioniMap[id],
       mansioniOggi: mansioni.filter(m => m.lavorazioneId === id)
-    })).filter(l => l.id); // Filtra eventuali undefined
+    })).filter(l => l.id);
   }, [mansioni, lavorazioniMap]);
   
-  // Mansioni per operatore
   const mansioniPerOperatore = useMemo(() => {
     return OPERATORI.map(op => ({
       operatore: op,
@@ -575,48 +638,31 @@ export default function PlanningRegister({ setPage }) {
     }));
   }, [mansioni]);
 
-  // Calcoli per linea ora corrente
   const currentMinutes = timeToMinutes(currentTime);
   const isToday = formatDateISO(new Date()) === dateStr;
   const showCurrentLine = isToday && currentMinutes >= START_HOUR * 60 && currentMinutes <= END_HOUR * 60;
   const currentLineLeft = ((currentMinutes - START_HOUR * 60) / 60) * HOUR_WIDTH;
   const currentLineTop = ((currentMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
 
-  // Navigazione
   const goToPrevDay = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
   const goToNextDay = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; });
   const goToToday = () => setSelectedDate(new Date());
 
-  // Handler edit
-  const handleEditMansione = (mansione) => {
-    setEditingMansione(mansione);
-  };
+  const handleEditMansione = (mansione) => setEditingMansione(mansione);
+  const handleSaveMansione = (formData) => console.log('Salvataggio:', formData);
 
-  const handleSaveMansione = (formData) => {
-    console.log('Salvataggio:', formData);
-    // Qui implementare la logica di salvataggio
-  };
-
-  // Weekend check
   const weekend = isWeekend(selectedDate);
 
   return (
     <div className="p-6 max-w-full mx-auto min-h-screen space-y-4">
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-800 flex items-center gap-2">
-            <Calendar className="text-primary" size={28} />
-            Planning Register
-          </h1>
-          <p className="text-neutral-500 text-sm">Pianificazione lavorazioni e mansioni</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setPage('dashboard')}>← Dashboard</Button>
-          <Button><Plus size={18} className="mr-1" /> Nuova Mansione</Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-neutral-800 flex items-center gap-2">
+          <Calendar className="text-primary" size={28} />
+          Planning Register
+        </h1>
+        <p className="text-neutral-500 text-sm">Pianificazione lavorazioni e mansioni</p>
       </div>
 
       {/* TOOLBAR */}
@@ -673,7 +719,6 @@ export default function PlanningRegister({ setPage }) {
 
       {/* CONTENUTO */}
       {weekend ? (
-        // WEEKEND
         <Card className="!p-12 text-center">
           <Calendar size={64} className="mx-auto mb-4 text-neutral-200" />
           <h3 className="text-xl font-bold text-neutral-400 mb-2">Laboratorio Chiuso</h3>
@@ -683,9 +728,7 @@ export default function PlanningRegister({ setPage }) {
           </button>
         </Card>
       ) : viewMode === 'lavorazioni' ? (
-        // VISTA LAVORAZIONI
         <Card className="!p-0 overflow-hidden">
-          {/* Header Timeline */}
           <div className="flex border-b border-neutral-200 bg-neutral-50 sticky top-0 z-20">
             <div className="w-64 shrink-0 p-3 border-r border-neutral-200">
               <span className="text-xs font-bold text-neutral-400 uppercase">
@@ -706,7 +749,6 @@ export default function PlanningRegister({ setPage }) {
             </div>
           </div>
 
-          {/* Righe */}
           <div className="overflow-x-auto">
             {lavorazioniOggi.length > 0 ? (
               lavorazioniOggi.map(lav => (
@@ -717,6 +759,7 @@ export default function PlanningRegister({ setPage }) {
                   onEditMansione={handleEditMansione}
                   showCurrentLine={showCurrentLine}
                   currentLineLeft={currentLineLeft}
+                  selectedDateStr={dateStr}
                 />
               ))
             ) : (
@@ -728,10 +771,8 @@ export default function PlanningRegister({ setPage }) {
           </div>
         </Card>
       ) : (
-        // VISTA OPERATORI
         <Card className="!p-0 overflow-hidden">
           <div className="flex overflow-x-auto">
-            {/* Colonna Ore */}
             <div className="w-16 shrink-0 border-r border-neutral-200 bg-neutral-50">
               <div className="h-[52px] border-b border-neutral-200" />
               <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * HOUR_HEIGHT}px` }}>
@@ -743,7 +784,6 @@ export default function PlanningRegister({ setPage }) {
               </div>
             </div>
 
-            {/* Colonne Operatori */}
             {mansioniPerOperatore.map(({ operatore, mansioni }) => (
               <OperatorColumn
                 key={operatore.id}

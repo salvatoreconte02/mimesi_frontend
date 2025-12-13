@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, ChevronRight, Clock, CheckCircle, Coffee } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, CheckCircle, Coffee } from 'lucide-react';
 
 // --- OPERATORI ---
 const OPERATORI = [
@@ -9,26 +9,6 @@ const OPERATORI = [
   { id: 3, nome: 'Paolo', ruolo: 'Fresatura', color: 'bg-emerald-500', colorLight: 'bg-emerald-50', colorText: 'text-emerald-600' },
   { id: 4, nome: 'Sara', ruolo: 'Rifinitura', color: 'bg-purple-500', colorLight: 'bg-purple-50', colorText: 'text-purple-600' },
 ];
-
-// --- MOCK MANSIONI OGGI ---
-const generateTodayMansioni = () => {
-  const now = new Date();
-  const day = now.getDay();
-  
-  // Weekend vuoto
-  if (day === 0 || day === 6) return [];
-  
-  return [
-    { id: 1, operatoreId: 1, paziente: 'Rossi M.', fase: 'CAD', oraInizio: '08:30', oraFine: '10:30', completata: true },
-    { id: 2, operatoreId: 1, paziente: 'Bianchi L.', fase: 'CAD', oraInizio: '14:00', oraFine: '16:00', completata: false },
-    { id: 3, operatoreId: 2, paziente: 'Neri F.', fase: 'Ceramica', oraInizio: '08:00', oraFine: '11:00', completata: true },
-    { id: 4, operatoreId: 2, paziente: 'Rossi M.', fase: 'Ceramica', oraInizio: '14:00', oraFine: '17:00', completata: false },
-    { id: 5, operatoreId: 3, paziente: 'Rossi M.', fase: 'Fresatura', oraInizio: '11:00', oraFine: '13:00', completata: true },
-    { id: 6, operatoreId: 3, paziente: 'Bianchi L.', fase: 'Fresatura', oraInizio: '16:00', oraFine: '17:30', completata: false },
-    { id: 7, operatoreId: 4, paziente: 'Neri F.', fase: 'Rifinitura', oraInizio: '14:00', oraFine: '15:30', completata: false },
-    { id: 8, operatoreId: 4, paziente: 'Rossi M.', fase: 'Rifinitura', oraInizio: '16:30', oraFine: '17:30', completata: false },
-  ];
-};
 
 // --- HELPERS ---
 const timeToMinutes = (timeStr) => {
@@ -41,14 +21,77 @@ const getCurrentTime = () => {
   return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 };
 
-const isWeekend = () => {
-  const day = new Date().getDay();
+const formatDateISO = (date) => {
+  return date.toISOString().split('T')[0];
+};
+
+const isWeekend = (date) => {
+  const day = date.getDay();
   return day === 0 || day === 6;
+};
+
+const isSameDay = (date1, date2) => {
+  return formatDateISO(date1) === formatDateISO(date2);
+};
+
+// --- GENERA MANSIONI PER DATA (senza overlap) ---
+const generateMansioniForDate = (dateStr) => {
+  const date = new Date(dateStr);
+  const dayOfWeek = date.getDay();
+  
+  if (dayOfWeek === 0 || dayOfWeek === 6) return [];
+  
+  const seed = date.getDate() + date.getMonth() * 31;
+  
+  const mansioniPool = {
+    1: [
+      [{ paziente: 'Rossi M.', fase: 'CAD', oraInizio: '08:30', oraFine: '10:30' }, { paziente: 'Bianchi L.', fase: 'CAD', oraInizio: '14:00', oraFine: '16:00' }],
+      [{ paziente: 'Verdi G.', fase: 'CAD', oraInizio: '09:00', oraFine: '12:00' }, { paziente: 'Neri F.', fase: 'CAD', oraInizio: '14:30', oraFine: '17:00' }],
+      [{ paziente: 'Gialli A.', fase: 'CAD', oraInizio: '08:00', oraFine: '10:00' }, { paziente: 'Rossi M.', fase: 'CAD', oraInizio: '11:00', oraFine: '13:00' }, { paziente: 'Blu M.', fase: 'CAD', oraInizio: '15:00', oraFine: '17:30' }],
+    ],
+    2: [
+      [{ paziente: 'Neri F.', fase: 'Ceramica', oraInizio: '08:00', oraFine: '11:00' }, { paziente: 'Rossi M.', fase: 'Ceramica', oraInizio: '14:00', oraFine: '17:00' }],
+      [{ paziente: 'Bianchi L.', fase: 'Ceramica', oraInizio: '09:00', oraFine: '12:30' }, { paziente: 'Verdi G.', fase: 'Ceramica', oraInizio: '14:00', oraFine: '16:00' }],
+      [{ paziente: 'Gialli A.', fase: 'Ceramica', oraInizio: '10:00', oraFine: '13:00' }],
+    ],
+    3: [
+      [{ paziente: 'Rossi M.', fase: 'Fresatura', oraInizio: '11:00', oraFine: '13:00' }, { paziente: 'Bianchi L.', fase: 'Fresatura', oraInizio: '16:00', oraFine: '17:30' }],
+      [{ paziente: 'Neri F.', fase: 'Fresatura', oraInizio: '08:30', oraFine: '10:30' }, { paziente: 'Verdi G.', fase: 'Fresatura', oraInizio: '14:00', oraFine: '16:30' }],
+      [{ paziente: 'Blu M.', fase: 'Fresatura', oraInizio: '09:00', oraFine: '11:00' }, { paziente: 'Gialli A.', fase: 'Fresatura', oraInizio: '13:00', oraFine: '15:00' }],
+    ],
+    4: [
+      [{ paziente: 'Neri F.', fase: 'Rifinitura', oraInizio: '14:00', oraFine: '15:30' }, { paziente: 'Rossi M.', fase: 'Rifinitura', oraInizio: '16:30', oraFine: '17:30' }],
+      [{ paziente: 'Bianchi L.', fase: 'Rifinitura', oraInizio: '09:00', oraFine: '10:30' }, { paziente: 'Verdi G.', fase: 'Rifinitura', oraInizio: '15:00', oraFine: '17:00' }],
+      [{ paziente: 'Gialli A.', fase: 'Rifinitura', oraInizio: '11:00', oraFine: '12:30' }],
+    ],
+  };
+  
+  const result = [];
+  let idCounter = 1;
+  
+  OPERATORI.forEach(op => {
+    const pool = mansioniPool[op.id];
+    const selectedSet = pool[(seed + op.id) % pool.length];
+    
+    selectedSet.forEach((m, idx) => {
+      const startMinutes = timeToMinutes(m.oraInizio);
+      const currentMinutes = timeToMinutes(getCurrentTime());
+      const isInPast = startMinutes + 90 < currentMinutes;
+      
+      result.push({
+        id: idCounter++,
+        operatoreId: op.id,
+        ...m,
+        completata: isInPast && (seed + idx) % 3 !== 0,
+      });
+    });
+  });
+  
+  return result;
 };
 
 // --- CARD OPERATORE ---
 function OperatorCard({ operatore, mansioni, currentMinutes }) {
-  // Trova mansione attuale o prossima
   const sorted = [...mansioni].sort((a, b) => timeToMinutes(a.oraInizio) - timeToMinutes(b.oraInizio));
   
   const mansioneAttuale = sorted.find(m => {
@@ -65,7 +108,6 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
   const completateOggi = mansioni.filter(m => m.completata).length;
   const totaleOggi = mansioni.length;
   
-  // Determina stato
   let stato = 'libero';
   let mansioneMostrata = null;
   
@@ -90,7 +132,6 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
           : 'bg-white border-neutral-100 hover:border-neutral-200'}
       `}
     >
-      {/* Header operatore */}
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-7 h-7 rounded-full ${operatore.color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
           {operatore.nome[0]}
@@ -100,22 +141,16 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
           <p className="text-[10px] text-neutral-400">{operatore.ruolo}</p>
         </div>
         
-        {/* Badge stato */}
         {stato === 'attivo' && (
           <span className="flex items-center gap-1 text-[9px] font-bold text-primary bg-white px-1.5 py-0.5 rounded-full shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             IN CORSO
           </span>
         )}
-        {stato === 'finito' && (
-          <CheckCircle size={16} className="text-green-500" />
-        )}
-        {stato === 'libero' && totaleOggi === 0 && (
-          <Coffee size={14} className="text-neutral-300" />
-        )}
+        {stato === 'finito' && <CheckCircle size={16} className="text-green-500" />}
+        {stato === 'libero' && totaleOggi === 0 && <Coffee size={14} className="text-neutral-300" />}
       </div>
 
-      {/* Dettaglio mansione */}
       {mansioneMostrata ? (
         <div className={`text-xs ${stato === 'attivo' ? operatore.colorText : 'text-neutral-600'}`}>
           <div className="flex items-center justify-between">
@@ -125,22 +160,15 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
             </span>
           </div>
           {stato === 'prossimo' && (
-            <p className="text-[10px] text-neutral-400 mt-0.5">
-              Prossimo alle {mansioneMostrata.oraInizio}
-            </p>
+            <p className="text-[10px] text-neutral-400 mt-0.5">Prossimo alle {mansioneMostrata.oraInizio}</p>
           )}
         </div>
       ) : stato === 'finito' ? (
-        <p className="text-[10px] text-green-600 font-medium">
-          ✓ {completateOggi} mansioni completate
-        </p>
+        <p className="text-[10px] text-green-600 font-medium">✓ {completateOggi} mansioni completate</p>
       ) : (
-        <p className="text-[10px] text-neutral-400 italic">
-          Nessuna mansione oggi
-        </p>
+        <p className="text-[10px] text-neutral-400 italic">Nessuna mansione</p>
       )}
       
-      {/* Mini progress */}
       {totaleOggi > 0 && (
         <div className="flex items-center gap-1.5 mt-2">
           <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -158,19 +186,21 @@ function OperatorCard({ operatore, mansioni, currentMinutes }) {
 
 // --- COMPONENTE PRINCIPALE ---
 export default function PlanningWidget({ onNavigate }) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
-  const [mansioni, setMansioni] = useState([]);
 
   useEffect(() => {
-    setMansioni(generateTodayMansioni());
     const interval = setInterval(() => setCurrentTime(getCurrentTime()), 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const currentMinutes = timeToMinutes(currentTime);
-  const weekend = isWeekend();
+  const dateStr = formatDateISO(selectedDate);
+  const mansioni = useMemo(() => generateMansioniForDate(dateStr), [dateStr]);
 
-  // Raggruppa mansioni per operatore
+  const currentMinutes = timeToMinutes(currentTime);
+  const weekend = isWeekend(selectedDate);
+  const isToday = isSameDay(selectedDate, new Date());
+
   const mansioniPerOperatore = useMemo(() => {
     return OPERATORI.map(op => ({
       operatore: op,
@@ -178,7 +208,6 @@ export default function PlanningWidget({ onNavigate }) {
     }));
   }, [mansioni]);
 
-  // Stats
   const totaleMansioniOggi = mansioni.length;
   const completate = mansioni.filter(m => m.completata).length;
   const inCorso = mansioni.filter(m => {
@@ -187,11 +216,15 @@ export default function PlanningWidget({ onNavigate }) {
     return currentMinutes >= start && currentMinutes < end && !m.completata;
   }).length;
 
-  const today = new Date().toLocaleDateString('it-IT', { 
+  const formattedDate = selectedDate.toLocaleDateString('it-IT', { 
     weekday: 'short', 
     day: 'numeric', 
     month: 'short' 
   });
+
+  const goToPrev = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
+  const goToNext = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; });
+  const goToToday = () => setSelectedDate(new Date());
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
@@ -203,11 +236,41 @@ export default function PlanningWidget({ onNavigate }) {
             <Calendar className="text-primary" size={18} />
           </div>
           <div>
-            <h3 className="font-bold text-neutral-800 text-sm">Planning Oggi</h3>
-            <div className="flex items-center gap-2 text-[11px] text-neutral-500">
-              <span className="capitalize">{today}</span>
-              <span className="text-neutral-300">•</span>
-              <span className="font-mono font-bold text-primary">{currentTime}</span>
+            <h3 className="font-bold text-neutral-800 text-sm">Planning</h3>
+            
+            {/* Navigazione Data */}
+            <div className="flex items-center gap-1 text-[11px]">
+              <button 
+                onClick={goToPrev}
+                className="p-0.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-600"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              
+              <button 
+                onClick={goToToday}
+                className={`capitalize px-1.5 py-0.5 rounded transition-colors ${
+                  isToday 
+                    ? 'text-primary font-bold' 
+                    : 'text-neutral-500 hover:bg-neutral-100'
+                }`}
+              >
+                {formattedDate}
+              </button>
+              
+              <button 
+                onClick={goToNext}
+                className="p-0.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-600"
+              >
+                <ChevronRight size={14} />
+              </button>
+              
+              {isToday && (
+                <>
+                  <span className="text-neutral-300 mx-1">•</span>
+                  <span className="font-mono font-bold text-primary">{currentTime}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -237,7 +300,7 @@ export default function PlanningWidget({ onNavigate }) {
             </div>
             <div className="w-px h-6 bg-neutral-200" />
             <div>
-              <span className="text-lg font-bold text-primary">{inCorso}</span>
+              <span className="text-lg font-bold text-primary">{isToday ? inCorso : '-'}</span>
               <p className="text-[9px] text-neutral-400 uppercase">In corso</p>
             </div>
             <div className="w-px h-6 bg-neutral-200" />
@@ -254,7 +317,7 @@ export default function PlanningWidget({ onNavigate }) {
                 key={operatore.id}
                 operatore={operatore}
                 mansioni={mansioni}
-                currentMinutes={currentMinutes}
+                currentMinutes={isToday ? currentMinutes : 0}
               />
             ))}
           </div>
