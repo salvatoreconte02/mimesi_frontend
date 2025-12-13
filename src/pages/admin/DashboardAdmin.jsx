@@ -64,11 +64,14 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* MAIN SECTION: PLANNING (SX) + STATS (DX) - ALTEZZA FISSA 480px */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-auto xl:h-[480px]">
+      {/* MAIN SECTION: 
+          - Altezza FISSA e BLOCCATA a 420px. 
+          - I figli useranno h-full per riempirla esattamente.
+      */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[420px]">
         
         {/* COLONNA SINISTRA: WIDGET PLANNING (2/3 Spazio) */}
-        <div className="xl:col-span-2 h-full">
+        <div className="xl:col-span-2 h-full overflow-hidden">
             <PlanningWidget onNavigate={() => setPage('planning')} />
         </div>
 

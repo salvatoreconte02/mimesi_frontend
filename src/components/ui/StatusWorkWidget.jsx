@@ -28,9 +28,11 @@ export default function StatusWorkWidget({
     <motion.div 
       whileHover={{ y: -5 }}
       onClick={onClick}
-      className={`bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer ${colorClasses.hoverBorder} group transition-all`}
+      // AGGIUNTO: h-full, flex, flex-col, justify-between
+      // Questo forza il widget a occupare tutta l'altezza della cella della griglia
+      className={`bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm cursor-pointer ${colorClasses.hoverBorder} group transition-all h-full flex flex-col justify-between`}
     >
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-2">
         <div className={`w-12 h-12 rounded-xl ${colorClasses.bg} ${colorClasses.text} flex items-center justify-center ${colorClasses.hoverBg} group-hover:text-white transition-colors`}>
           <Icon size={24} />
         </div>
@@ -43,13 +45,16 @@ export default function StatusWorkWidget({
           </span>
         )}
       </div>
-      <h3 className="text-4xl font-bold text-neutral-800 mb-1">{count}</h3>
-      <p className="text-sm text-neutral-500 font-medium">{label}</p>
+      
+      <div>
+        <h3 className="text-4xl font-bold text-neutral-800 mb-1">{count}</h3>
+        <p className="text-sm text-neutral-500 font-medium">{label}</p>
+      </div>
     </motion.div>
   );
 }
 
-// Preset di colori predefiniti
+// Preset di colori predefiniti (INVARIATI)
 export const COLOR_PRESETS = {
   blue: {
     bg: 'bg-blue-100',
