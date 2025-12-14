@@ -3,6 +3,7 @@ import useAuthStore from './store/authStore';
 import SidebarDottore from './components/layout/SidebarDottore';
 import SidebarAdmin from './components/layout/SidebarAdmin';
 import Sidebar from './components/layout/Sidebar'; 
+import SidebarOperatore from './components/layout/SidebarOperatore'; // NUOVO IMPORT
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 import { initializeMockData } from './mockData';
@@ -15,8 +16,13 @@ import DashboardAdmin from './pages/admin/DashboardAdmin';
 import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
 import InboxAdmin from './pages/admin/InboxAdmin';
 import PlanningRegister from './pages/admin/PlanningRegister';
-import Magazzino from './pages/admin/Magazzino'; // NUOVO IMPORT
+import Magazzino from './pages/admin/Magazzino'; 
 import DashboardGeneric from './pages/Dashboard';
+
+// --- IMPORT PAGINE OPERATORE ---
+import DashboardOperatore from './pages/operatore/DashboardOperatore';
+import PlanningOperatore from './pages/operatore/PlanningOperatore';
+import BadgePresenze from './pages/operatore/BadgePresenze';
 
 function Login() {
   const login = useAuthStore(s => s.login);
@@ -65,6 +71,16 @@ function App() {
 
   const renderContent = () => {
     
+    // --- GESTIONE VISTE PER RUOLO ---
+
+    // VISTA OPERATORE
+    if (user?.role === 'operatore') {
+        if (page === 'dashboard') return <DashboardOperatore setPage={setPage} />;
+        if (page === 'planning') return <PlanningOperatore />;
+        if (page === 'badge') return <BadgePresenze />;
+    }
+
+    // VISTE ADMIN / DOTTORE
     if (page === 'planning') {
       if (user?.role === 'admin') return <PlanningRegister setPage={setPage} />;
     }
@@ -79,19 +95,16 @@ function App() {
         if (user?.role === 'admin') return <InboxAdmin setPage={setPage} />;
     }
 
-    // --- NUOVA ROUTE PER MAGAZZINO ---
     if (page === 'magazzino') {
         if (user?.role === 'admin') return <Magazzino />;
     }
 
     if (page === 'dashboard') {
         switch(user?.role) {
-            case 'admin':
-                return <DashboardAdmin setPage={setPage} />;
-            case 'dottore':
-                return <DashboardDottore setPage={setPage} />;
-            default:
-                return <DashboardGeneric />; 
+            case 'admin': return <DashboardAdmin setPage={setPage} />;
+            case 'dottore': return <DashboardDottore setPage={setPage} />;
+            case 'operatore': return <DashboardOperatore setPage={setPage} />;
+            default: return <DashboardGeneric />; 
         }
     }
 
@@ -105,9 +118,11 @@ function App() {
     );
   };
 
+  // Selezione componente Sidebar
   let SidebarComponent;
   if (user?.role === 'admin') SidebarComponent = SidebarAdmin;
   else if (user?.role === 'dottore') SidebarComponent = SidebarDottore;
+  else if (user?.role === 'operatore') SidebarComponent = SidebarOperatore;
   else SidebarComponent = Sidebar;
 
   return (
