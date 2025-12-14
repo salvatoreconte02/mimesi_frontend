@@ -36,7 +36,7 @@ const useAuthStore = create((set) => ({
             cognome: 'Verdi',
             studio: null,
             role: 'operatore',
-            name: 'Luca Operatore',
+            name: 'Luca Verdi',
             avatar: `https://ui-avatars.com/api/?name=Luca+Verdi&background=orange&color=fff`
         };
     }

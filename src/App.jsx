@@ -3,7 +3,7 @@ import useAuthStore from './store/authStore';
 import SidebarDottore from './components/layout/SidebarDottore';
 import SidebarAdmin from './components/layout/SidebarAdmin';
 import Sidebar from './components/layout/Sidebar'; 
-import SidebarOperatore from './components/layout/SidebarOperatore'; // NUOVO IMPORT
+import SidebarOperatore from './components/layout/SidebarOperatore';
 import Button from './components/ui/Button';
 import { motion } from 'framer-motion';
 import { initializeMockData } from './mockData';
@@ -23,6 +23,7 @@ import DashboardGeneric from './pages/Dashboard';
 import DashboardOperatore from './pages/operatore/DashboardOperatore';
 import PlanningOperatore from './pages/operatore/PlanningOperatore';
 import BadgePresenze from './pages/operatore/BadgePresenze';
+import RegistroPresenze from './pages/operatore/RegistroPresenze';
 
 function Login() {
   const login = useAuthStore(s => s.login);
@@ -67,20 +68,26 @@ function App() {
     initializeMockData();
   }, []);
 
+  // --- EFFETTO PER RESETTARE SU DASHBOARD AL LOGIN ---
+  useEffect(() => {
+    if (isAuthenticated) {
+      setPage('dashboard');
+    }
+  }, [isAuthenticated]);
+
   if (!isAuthenticated) return <Login />;
 
   const renderContent = () => {
     
-    // --- GESTIONE VISTE PER RUOLO ---
-
-    // VISTA OPERATORE
+    // --- GESTIONE VISTE OPERATORE ---
     if (user?.role === 'operatore') {
         if (page === 'dashboard') return <DashboardOperatore setPage={setPage} />;
         if (page === 'planning') return <PlanningOperatore />;
         if (page === 'badge') return <BadgePresenze />;
+        if (page === 'registro') return <RegistroPresenze />;
     }
 
-    // VISTE ADMIN / DOTTORE
+    // --- GESTIONE VISTE ADMIN / DOTTORE ---
     if (page === 'planning') {
       if (user?.role === 'admin') return <PlanningRegister setPage={setPage} />;
     }
@@ -118,7 +125,6 @@ function App() {
     );
   };
 
-  // Selezione componente Sidebar
   let SidebarComponent;
   if (user?.role === 'admin') SidebarComponent = SidebarAdmin;
   else if (user?.role === 'dottore') SidebarComponent = SidebarDottore;

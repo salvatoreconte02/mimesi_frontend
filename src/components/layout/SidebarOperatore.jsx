@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Clock, LogOut } from 'lucide-react'; 
+import { LayoutDashboard, CalendarDays, Clock, FileText, LogOut } from 'lucide-react'; 
 import useAuthStore from '../../store/authStore';
 import logoImg from '../../assets/mimesilogo.jpg'; 
 
@@ -8,7 +8,8 @@ export default function SidebarOperatore({ setPage, page }) {
   const menus = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'planning', icon: CalendarDays, label: 'La Mia Agenda' },
-    { id: 'badge', icon: Clock, label: 'Badge & Presenze' },
+    { id: 'badge', icon: Clock, label: 'Timbratura & Richieste' }, // Rinominato per chiarezza
+    { id: 'registro', icon: FileText, label: 'Registro Presenze' }, // NUOVA VOCE
   ];
 
   return (
@@ -37,7 +38,7 @@ export default function SidebarOperatore({ setPage, page }) {
               onClick={() => setPage(item.id)} 
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group relative
                 ${isActive 
-                  ? 'bg-primary text-white shadow-md shadow-primary/20' // Uniformato a Primary
+                  ? 'bg-primary text-white shadow-md shadow-primary/20' 
                   : 'text-neutral-600 hover:bg-primary-lighter hover:text-primary'
                 }
               `}
