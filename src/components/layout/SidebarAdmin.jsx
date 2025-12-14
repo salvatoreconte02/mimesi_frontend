@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FileText, MessageSquare, Users, LogOut, CalendarDays } from 'lucide-react'; 
+import { LayoutDashboard, FileText, MessageSquare, Users, LogOut, CalendarDays, Package } from 'lucide-react'; // Aggiunto Package
 import useAuthStore from '../../store/authStore';
 import logoImg from '../../assets/mimesilogo.jpg'; 
 
@@ -23,6 +23,7 @@ export default function SidebarAdmin({ setPage, page }) {
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'planning', icon: CalendarDays, label: 'Planning Register' },
     { id: 'lavorazioni', icon: FileText, label: 'Lavorazioni' },
+    { id: 'magazzino', icon: Package, label: 'Magazzino' }, // NUOVA VOCE AGGIUNTA
     { id: 'inbox', icon: MessageSquare, label: 'Inbox', badge: unreadCount },
     { id: 'users', icon: Users, label: 'Utenti' },
   ];

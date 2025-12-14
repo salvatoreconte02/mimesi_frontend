@@ -15,6 +15,7 @@ import DashboardAdmin from './pages/admin/DashboardAdmin';
 import LavorazioniAdmin from './pages/admin/LavorazioniAdmin';
 import InboxAdmin from './pages/admin/InboxAdmin';
 import PlanningRegister from './pages/admin/PlanningRegister';
+import Magazzino from './pages/admin/Magazzino'; // NUOVO IMPORT
 import DashboardGeneric from './pages/Dashboard';
 
 function Login() {
@@ -56,17 +57,14 @@ function App() {
   const { isAuthenticated, user } = useAuthStore();
   const [page, setPage] = useState('dashboard');
 
-  // Initialize mock data on first load
   useEffect(() => {
     initializeMockData();
   }, []);
 
   if (!isAuthenticated) return <Login />;
 
-  // LOGICA DI ROUTING CENTRALIZZATA
   const renderContent = () => {
     
-    // PLANNING REGISTER (solo Admin)
     if (page === 'planning') {
       if (user?.role === 'admin') return <PlanningRegister setPage={setPage} />;
     }
@@ -79,6 +77,11 @@ function App() {
     if (page === 'inbox') {
         if (user?.role === 'dottore') return <InboxDottore />;
         if (user?.role === 'admin') return <InboxAdmin setPage={setPage} />;
+    }
+
+    // --- NUOVA ROUTE PER MAGAZZINO ---
+    if (page === 'magazzino') {
+        if (user?.role === 'admin') return <Magazzino />;
     }
 
     if (page === 'dashboard') {

@@ -361,8 +361,8 @@ export default function InboxDottore() {
                               </div>
                               {selectedMsg.quoteData.manualAdjustment !== 0 && (
                                 <div className="flex justify-between text-neutral-500 italic">
-                                    <span>Variazione / Sconto:</span>
-                                    <span>{'\u20AC'} {Number(selectedMsg.quoteData.manualAdjustment).toFixed(2)}</span>
+                                    <span>Variazione</span>
+                                    <span>{'\u20AC'} {Number(selectedMsg.quoteData.manualAdjustment || 0).toFixed(2)}</span>
                                 </div>
                               )}
                               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between text-lg">

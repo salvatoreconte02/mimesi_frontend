@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import useAuthStore from '../../store/authStore';
 import StatusWorkWidget, { COLOR_PRESETS } from '../../components/ui/StatusWorkWidget';
 import PlanningWidget from '../../components/widgets/PlanningWidget';
+import MagazzinoWidget from '../../components/widgets/MagazzinoWidget'; // IMPORT DEL WIDGET
 
 export default function DashboardAdmin({ setPage }) {
   const user = useAuthStore((state) => state.user);
@@ -40,7 +41,6 @@ export default function DashboardAdmin({ setPage }) {
   };
 
   const handleNewJob = () => {
-      // Imposta il flag per aprire direttamente il wizard nella pagina Lavorazioni
       sessionStorage.setItem('mimesi_admin_new_job', 'true');
       setPage('lavorazioni');
   };
@@ -48,7 +48,7 @@ export default function DashboardAdmin({ setPage }) {
   return (
     <div className="p-8 max-w-[1600px] mx-auto min-h-screen space-y-6 bg-neutral-50">
       
-      {/* HEADER MODIFICATO: Stile identico a DashboardDottore */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800">Admin Console</h1>
@@ -62,15 +62,12 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* MAIN SECTION */}
+      {/* MAIN SECTION (PLANNING + STATS) */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[420px]">
-        
-        {/* COLONNA SINISTRA: WIDGET PLANNING (2/3 Spazio) */}
         <div className="xl:col-span-2 h-full overflow-hidden">
             <PlanningWidget onNavigate={() => setPage('planning')} />
         </div>
 
-        {/* COLONNA DESTRA: STATISTICHE 2x2 (1/3 Spazio) */}
         <div className="xl:col-span-1 h-full">
             <div className="grid grid-cols-2 gap-4 h-full">
                 <StatusWorkWidget
@@ -106,8 +103,9 @@ export default function DashboardAdmin({ setPage }) {
         </div>
       </div>
 
-      {/* BOTTOM SECTION: RECENTI + INBOX */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* BOTTOM SECTION: RECENTI + INBOX + MAGAZZINO */}
+      {/* Modificato: Griglia a 3 colonne per ospitare il nuovo widget */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* LAVORAZIONI RECENTI */}
         <Card className="!p-0 overflow-hidden h-full">
@@ -144,7 +142,7 @@ export default function DashboardAdmin({ setPage }) {
         {/* INBOX */}
         <Card className="!p-0 overflow-hidden h-full">
           <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
-            <h3 className="font-bold text-neutral-800">Inbox Admin</h3>
+            <h3 className="font-bold text-neutral-800">Inbox</h3>
             <button onClick={() => setPage('inbox')} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
               Tutti <ChevronRight size={16} />
             </button>
@@ -165,6 +163,9 @@ export default function DashboardAdmin({ setPage }) {
             ) : <div className="text-center py-8 text-neutral-400 flex flex-col items-center"><Mail size={24} className="mb-2 opacity-20"/><p className="text-sm">Nessun messaggio</p></div>}
           </div>
         </Card>
+
+        {/* NUOVO: MAGAZZINO WIDGET (Terza Colonna) */}
+        <MagazzinoWidget onNavigate={() => setPage('magazzino')} />
 
       </div>
     </div>
