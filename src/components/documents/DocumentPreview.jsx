@@ -1,5 +1,4 @@
 import { GROUP_COLORS } from '../dental/VisualOdontogram'; 
-import StepQuote from '../wizard/StepQuote';
 import logoImg from '../../assets/mimesilogo.jpg';
 
 // Componente Checkbox SI/NO stilizzato come nel modulo cartaceo
@@ -29,7 +28,6 @@ const UnderlineField = ({ label, value, width = 'flex-1' }) => (
 
 // Componente Odontogramma Numerico (stile modulo cartaceo)
 const NumericOdontogram = ({ elements = [] }) => {
-  // Estrai tutti i denti selezionati
   const selectedTeeth = elements.flatMap(el => el.teeth || []);
   
   const upperRight = ['18', '17', '16', '15', '14', '13', '12', '11'];
@@ -52,7 +50,6 @@ const NumericOdontogram = ({ elements = [] }) => {
 
   return (
     <div className="border border-neutral-300 p-2 bg-white">
-      {/* Arcata Superiore */}
       <div className="flex justify-center gap-0">
         <div className="flex">
           {upperRight.map(n => <ToothNumber key={n} num={n} />)}
@@ -62,11 +59,7 @@ const NumericOdontogram = ({ elements = [] }) => {
           {upperLeft.map(n => <ToothNumber key={n} num={n} />)}
         </div>
       </div>
-      
-      {/* Linea divisoria */}
       <div className="h-px bg-neutral-400 my-1" />
-      
-      {/* Arcata Inferiore */}
       <div className="flex justify-center gap-0">
         <div className="flex">
           {lowerRight.map(n => <ToothNumber key={n} num={n} />)}
@@ -93,8 +86,17 @@ const PageHeader = () => (
   </div>
 );
 
+// Prezzi base per materiale (stessa logica di StepQuote)
+const BASE_PRICES = { 
+  'zirconio': 120, 
+  'disilicato': 140, 
+  'metallo_ceramica': 100, 
+  'pmma': 50, 
+  'resina': 40 
+};
+const SHIPMENT_COST = 8;
+
 export default function DocumentPreview({ data, quote, setQuote }) {
-  // Stile comune per tutte le pagine A4
   const pageStyle = "w-[595px] h-[842px] bg-white shadow-xl mx-auto mb-8 relative text-neutral-800 flex flex-col overflow-hidden";
 
   // Valori sicuri
@@ -115,13 +117,24 @@ export default function DocumentPreview({ data, quote, setQuote }) {
   const today = new Date();
   const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
 
-  // Prepara i dati per StepQuote
-  const stepQuoteData = {
-    formData: data,
-    technicalInfo: data?.technicalInfo || { material: 'zirconio', color: 'A2' },
-    elements: data?.elements || [],
-    dates: data?.dates || {}
-  };
+  // Calcola prezzi per la visualizzazione (se quote non ha groupPrices)
+  const basePrice = BASE_PRICES[data?.technicalInfo?.material] || 100;
+  const displayGroupPrices = safeQuote.groupPrices.length > 0 
+    ? safeQuote.groupPrices 
+    : (data?.elements || []).map((el, idx) => ({
+        groupId: el.id || idx,
+        groupIndex: el.groupIndex ?? idx,
+        teeth: el.teeth || [],
+        isBridge: el.isBridge,
+        unitPrice: basePrice,
+        elementCount: el.teeth?.length || 0
+      }));
+
+  // Calcola totali per visualizzazione
+  const elementsTotal = displayGroupPrices.reduce((acc, g) => acc + (g.unitPrice * g.elementCount), 0);
+  const shipmentCount = 1 + (data?.dates?.tryIn1 ? 1 : 0) + (data?.dates?.tryIn2 ? 1 : 0) + (data?.dates?.tryIn3 ? 1 : 0);
+  const shipmentTotal = shipmentCount * SHIPMENT_COST;
+  const grandTotal = safeQuote.total > 0 ? safeQuote.total : (elementsTotal + shipmentTotal);
 
   return (
     <div className="flex flex-col items-center">
@@ -168,12 +181,10 @@ export default function DocumentPreview({ data, quote, setQuote }) {
             
             <div className="text-[8px] text-neutral-400 mb-1">*Campi obbligatori</div>
             
-            {/* Nome e Cognome */}
             <div className="flex gap-2 mb-2">
               <UnderlineField label="*Nome e Cognome" value={`${data?.nome || ''} ${data?.cognome || ''}`} />
             </div>
             
-            {/* Riga con Codice, Età, Sesso, Bruxista */}
             <div className="flex items-center gap-4 mb-3">
               <UnderlineField label="Codice Paziente n." value={data?.codicePaziente} width="w-40" />
               <UnderlineField label="Età" value={data?.eta} width="w-16" />
@@ -185,7 +196,6 @@ export default function DocumentPreview({ data, quote, setQuote }) {
               <CheckboxField label="Bruxista" checked={data?.bruxismo} />
             </div>
 
-            {/* Riga checkbox anamnesi */}
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CheckboxField label="Allergie accertate" checked={data?.allergie} />
               <CheckboxField label="Disfunzioni articolari" checked={data?.disfunzioni} />
@@ -213,14 +223,13 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
             </div>
           </div>
 
-          {/* ELEMENTI - Odontogramma a larghezza piena */}
+          {/* ELEMENTI - Odontogramma */}
           <div className="space-y-3">
             <div>
               <span className="text-[9px] font-bold">*Elementi</span>
             </div>
             <NumericOdontogram elements={data?.elements} />
             
-            {/* Colore e Materiale */}
             <div className="flex gap-4 pt-2">
               <UnderlineField label="*Colore" value={data?.technicalInfo?.color} width="w-32" />
               <UnderlineField label="*Materiale" value={materialLabel} width="flex-1" />
@@ -251,16 +260,14 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="h-6 bg-gradient-to-r from-[#1E40AF] to-[#3B82F6]" />
         
-        {/* Numero pagina */}
         <div className="absolute bottom-8 left-0 right-0 text-center">
           <span className="text-[8px] text-neutral-400">Pagina 1 di 3 • Modulo di Prescrizione Odontoiatrico</span>
         </div>
       </div>
 
-      {/* ========== PAGINA 2: PREVENTIVO CON STEPQUOTE ========== */}
+      {/* ========== PAGINA 2: PREVENTIVO ECONOMICO (OTTIMIZZATO) ========== */}
       <div className={pageStyle}>
         <PageHeader />
 
@@ -271,18 +278,166 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
         </div>
 
         {/* Contenuto Preventivo */}
-        <div className="flex-1 px-6 py-4 overflow-hidden">
-          <StepQuote 
-            data={stepQuoteData}
-            quote={quote}
-            setQuote={setQuote || (() => {})}
-            onBack={() => {}}
-            onNext={() => {}}
-            hideNavigation={true}
-          />
+        <div className="flex-1 px-6 py-4 flex flex-col">
+          
+          {/* Info Cliente */}
+          <div className="flex justify-between items-start mb-4 pb-3 border-b border-neutral-200">
+            <div className="text-[10px]">
+              <p className="text-neutral-500">Paziente</p>
+              <p className="font-bold text-neutral-800">{data?.cognome} {data?.nome}</p>
+              <p className="text-neutral-500 font-mono text-[9px]">{data?.codicePaziente}</p>
+            </div>
+            <div className="text-[10px] text-right">
+              <p className="text-neutral-500">Medico Prescrittore</p>
+              <p className="font-bold text-neutral-800">Dr. {data?.nomeDottore} {data?.cognomeDottore}</p>
+              <p className="text-neutral-500">{data?.nomeStudio}</p>
+            </div>
+          </div>
+
+          {/* Tabella Dettaglio Elementi */}
+          <div className="mb-4">
+            <h3 className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="w-5 h-5 rounded bg-[#2D5BA6] text-white flex items-center justify-center text-[9px]">1</span>
+              Dettaglio Elementi
+            </h3>
+            
+            <table className="w-full text-[10px] border-collapse">
+              <thead>
+                <tr className="bg-neutral-100">
+                  <th className="border border-neutral-300 px-2 py-1.5 text-left font-bold text-neutral-700">Gruppo</th>
+                  <th className="border border-neutral-300 px-2 py-1.5 text-left font-bold text-neutral-700">Elementi</th>
+                  <th className="border border-neutral-300 px-2 py-1.5 text-left font-bold text-neutral-700">Tipologia</th>
+                  <th className="border border-neutral-300 px-2 py-1.5 text-center font-bold text-neutral-700">Quantità</th>
+                  <th className="border border-neutral-300 px-2 py-1.5 text-right font-bold text-neutral-700">Prezzo/u</th>
+                  <th className="border border-neutral-300 px-2 py-1.5 text-right font-bold text-neutral-700">Subtotale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayGroupPrices.map((group, idx) => {
+                  const subtotal = group.unitPrice * group.elementCount;
+                  const style = GROUP_COLORS[(group.groupIndex ?? idx) % GROUP_COLORS.length];
+                  return (
+                    <tr key={group.groupId || idx} className="hover:bg-neutral-50">
+                      <td className="border border-neutral-300 px-2 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-4 h-4 rounded-full ${style.bg} ${style.text} flex items-center justify-center text-[8px] font-bold`}>
+                            {idx + 1}
+                          </div>
+                          <span className="font-medium">G{idx + 1}</span>
+                        </div>
+                      </td>
+                      <td className="border border-neutral-300 px-2 py-1.5 font-mono text-[9px]">
+                        {group.teeth?.join('-') || '-'}
+                      </td>
+                      <td className="border border-neutral-300 px-2 py-1.5">
+                        {group.isBridge ? 'Ponte' : 'Singolo'} • {materialLabel}
+                      </td>
+                      <td className="border border-neutral-300 px-2 py-1.5 text-center font-bold">
+                        {group.elementCount}
+                      </td>
+                      <td className="border border-neutral-300 px-2 py-1.5 text-right font-mono">
+                        € {group.unitPrice.toFixed(2)}
+                      </td>
+                      <td className="border border-neutral-300 px-2 py-1.5 text-right font-bold font-mono">
+                        € {subtotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-neutral-50">
+                  <td colSpan={3} className="border border-neutral-300 px-2 py-1.5 text-right font-medium text-neutral-600">
+                    Subtotale Elementi
+                  </td>
+                  <td className="border border-neutral-300 px-2 py-1.5 text-center font-bold">
+                    {totalElements}
+                  </td>
+                  <td className="border border-neutral-300 px-2 py-1.5"></td>
+                  <td className="border border-neutral-300 px-2 py-1.5 text-right font-bold font-mono">
+                    € {elementsTotal.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Spedizioni */}
+          <div className="mb-4">
+            <h3 className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="w-5 h-5 rounded bg-[#2D5BA6] text-white flex items-center justify-center text-[9px]">2</span>
+              Logistica e Spedizioni
+            </h3>
+            
+            <table className="w-full text-[10px] border-collapse">
+              <tbody>
+                <tr>
+                  <td className="border border-neutral-300 px-2 py-1.5">
+                    Spedizioni A/R
+                    <span className="text-[9px] text-neutral-400 ml-2">
+                      (1 consegna{data?.dates?.tryIn1 ? ' + prova 1' : ''}{data?.dates?.tryIn2 ? ' + prova 2' : ''}{data?.dates?.tryIn3 ? ' + prova 3' : ''})
+                    </span>
+                  </td>
+                  <td className="border border-neutral-300 px-2 py-1.5 text-center w-20">
+                    {shipmentCount}
+                  </td>
+                  <td className="border border-neutral-300 px-2 py-1.5 text-right w-24 font-mono">
+                    € {SHIPMENT_COST.toFixed(2)}/cad
+                  </td>
+                  <td className="border border-neutral-300 px-2 py-1.5 text-right w-28 font-bold font-mono">
+                    € {shipmentTotal.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Note */}
+          <div className="mb-4 p-3 bg-neutral-50 border border-neutral-200 rounded">
+            <h4 className="text-[9px] font-bold text-neutral-600 uppercase mb-1">Note</h4>
+            <p className="text-[9px] text-neutral-500 leading-relaxed">
+              Il presente preventivo ha validità 30 giorni dalla data di emissione. I prezzi indicati sono IVA esclusa. 
+              Eventuali modifiche richieste dopo l'approvazione potrebbero comportare variazioni sui costi e tempi di consegna.
+            </p>
+          </div>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* TOTALE FINALE - Sempre visibile in fondo */}
+          <div className="bg-gradient-to-r from-[#1E40AF] to-[#3B82F6] rounded-lg p-4 text-white">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <p className="text-[10px] text-blue-100 uppercase font-bold tracking-wider">Totale Preventivo</p>
+                <p className="text-3xl font-bold mt-0.5">€ {grandTotal.toFixed(2)}</p>
+              </div>
+              <div className="text-right">
+                <div className="bg-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                  <p className="text-[9px] text-blue-100">Elementi</p>
+                  <p className="text-lg font-bold">{totalElements}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-between text-[10px] pt-2 border-t border-white/20">
+              <div className="flex gap-6">
+                <div>
+                  <span className="text-blue-200">Lavorazione</span>
+                  <span className="font-bold ml-2">€ {elementsTotal.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-blue-200">Spedizioni</span>
+                  <span className="font-bold ml-2">€ {shipmentTotal.toFixed(2)}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-blue-200">Data</span>
+                <span className="font-bold ml-2">{formattedDate}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Footer */}
         <div className="h-6 bg-gradient-to-r from-[#1E40AF] to-[#3B82F6]" />
         
         <div className="absolute bottom-8 left-0 right-0 text-center">
@@ -353,6 +508,12 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
                 <span className="font-medium ml-2">{data?.dates?.delivery ? new Date(data.dates.delivery).toLocaleDateString() : '-'}</span>
               </div>
             </div>
+            
+            {/* Importo in evidenza */}
+            <div className="mt-4 pt-3 border-t border-neutral-200 flex justify-between items-center">
+              <span className="text-[10px] font-bold text-neutral-700 uppercase">Importo Totale</span>
+              <span className="text-xl font-bold text-[#2D5BA6]">€ {grandTotal.toFixed(2)}</span>
+            </div>
           </div>
 
           {/* Testo Dichiarazione */}
@@ -374,7 +535,6 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
           {/* Area Firma */}
           <div className="flex-1 flex flex-col justify-end">
             <div className="grid grid-cols-2 gap-8">
-              {/* Data */}
               <div>
                 <p className="text-[9px] font-medium text-neutral-600 mb-2">Luogo e Data</p>
                 <div className="border-b-2 border-neutral-300 h-10 flex items-end pb-1">
@@ -382,7 +542,6 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
                 </div>
               </div>
               
-              {/* Firma */}
               <div>
                 <p className="text-[9px] font-medium text-neutral-600 mb-2">Firma del Medico Prescrittore</p>
                 <div className="border-b-2 border-neutral-300 h-10 flex items-end justify-center pb-1">
@@ -391,7 +550,6 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
               </div>
             </div>
 
-            {/* Note legali */}
             <div className="mt-6 pt-4 border-t border-dashed border-neutral-200">
               <p className="text-[8px] text-neutral-400 text-center leading-relaxed">
                 La presente dichiarazione ha valore di conferma d'ordine. Una volta firmata, la lavorazione verrà 
@@ -402,7 +560,6 @@ Tipologia: ${(data?.elements || []).map(el => el.isBridge ? `Ponte (${el.teeth?.
           </div>
         </div>
 
-        {/* Footer */}
         <div className="h-6 bg-gradient-to-r from-[#1E40AF] to-[#3B82F6]" />
         
         <div className="absolute bottom-8 left-0 right-0 text-center">
